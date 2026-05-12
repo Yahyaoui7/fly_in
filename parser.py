@@ -157,7 +157,6 @@ class MapParser:
         self, kind: str, body: str, line_number: int
     ) -> None:
         parts = body.split(maxsplit=1)
-
         if not parts:
             raise ParseError(f"Line {line_number}: connection is missing data")
 
@@ -192,7 +191,6 @@ class MapParser:
             )
 
         connection_key = frozenset((zone_a, zone_b))
-
         if connection_key in self.connection_keys:
             raise ParseError(
                 f"Line {line_number}: duplicate connection '{zone_a}-{zone_b}'"
@@ -221,10 +219,10 @@ class MapParser:
         try:
             x = int(x_text)
             y = int(y_text)
-        except ValueError as exc:
+        except ValueError:
             raise ParseError(
                 f"Line {line_number}: coordinates must be integers"
-            ) from exc
+            )
 
         return x, y
 
@@ -251,9 +249,7 @@ class MapParser:
             raise ParseError(
                 f"Line {line_number}: metadata must be inside '[' and ']'"
             )
-
         metadata_content = metadata_text[1:-1].strip()
-
         if not metadata_content:
             return zone_type, color, max_drones
 

@@ -2,6 +2,8 @@ import sys
 from pathlib import Path
 
 from parser import MapParser
+from errors import ParseError
+
 
 
 def main() -> int:
@@ -10,10 +12,10 @@ def main() -> int:
         return 1
 
     file_path = Path(sys.argv[1])
-
     try:
-        parser = MapParser(file_path)
-        parser.parse()
+        Map = MapParser(file_path)
+        Map.parse()
+        print(Map.zones)
     except FileNotFoundError:
         print(f"Error: file not found: {file_path}")
         return 1
@@ -21,7 +23,10 @@ def main() -> int:
         print(f"Error: permission denied: {file_path}")
         return 1
     except ValueError as e:
-        print(f"Error : {e}")
+        print(f"Error: ValueError {e}")
+        return 1
+    except ParseError as e:
+        print(f"Error: {e}")
         return 1
     return 0
 
