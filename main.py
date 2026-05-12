@@ -20,7 +20,7 @@ def main() -> int:
     except PermissionError:
         print(f"Error: permission denied: {file_path}")
         return 1
-    except Exception as e:
+    except ValueError as e:
         print(f"Error : {e}")
         return 1
     return 0
