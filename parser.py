@@ -8,6 +8,25 @@ Line = tuple[str, int]
 ParserFunction = Callable[[str, str, int], None]
 
 VALID_ZONE_TYPES = {"normal", "blocked", "restricted", "priority"}
+SUPPERTED_COLOR = {
+    "crimson",
+    "violet",
+    "darkred",
+    "maroon",
+    "black",
+    "red",
+    "blue",
+    "purple",
+    "yellow",
+    "orange",
+    "cyan",
+    "brown",
+    "lime",
+    "green",
+    "gold",
+    "magenta",
+    "rainbow",
+}
 
 
 class MapParser:
@@ -66,8 +85,8 @@ class MapParser:
                 raise ParseError(f"Line {line_number}: missing ':'")
 
             kind, body = line_text.split(":", 1)
-            kind = kind.strip()
-            body = body.strip()
+            kind = kind.strip().lower()
+            body = body.strip().lower()
 
             if kind == "nb_drones":
                 raise ParseError(
@@ -92,8 +111,8 @@ class MapParser:
             raise ParseError(f"Line {line_number}: missing ':'")
 
         name, value_text = line_text.split(":", 1)
-        name = name.strip()
-        value_text = value_text.strip()
+        name = name.strip().lower()
+        value_text = value_text.strip().lower()
 
         if name != "nb_drones":
             raise ParseError(
@@ -249,12 +268,16 @@ class MapParser:
             raise ParseError(
                 f"Line {line_number}: metadata must be inside '[' and ']'"
             )
+        if metadata_text.count("[") != 1 or metadata_text.count("]") != 1:
+            raise ParseError(
+                "metadata must contain exactly one '[' and one ']'"
+            )
         metadata_content = metadata_text[1:-1].strip()
+
         if not metadata_content:
             return zone_type, color, max_drones
 
         seen_keys: set[str] = set()
-
         for item in metadata_content.split():
             if item.count("=") != 1:
                 raise ParseError(
@@ -281,6 +304,10 @@ class MapParser:
                 if not value:
                     raise ParseError(
                         f"Line {line_number}: color cannot be empty"
+                    )
+                elif value.lower() not in SUPPERTED_COLOR:
+                    raise ParseError(
+                        f"Line: {line_number}: this not valid color !"
                     )
                 color = value
 
@@ -318,6 +345,11 @@ class MapParser:
         ):
             raise ParseError(
                 f"Line {line_number}: connection metadata must be inside '[' and ']'"
+            )
+
+        if metadata_text.count("[") != 1 or metadata_text.count("]") != 1:
+            raise ParseError(
+                "metadata must contain exactly one '[' and one ']'"
             )
 
         metadata_content = metadata_text[1:-1].strip()
@@ -398,3 +430,46 @@ class MapParser:
 
         if self.end is None:
             raise ParseError("Missing end_hub")
+
+        if self.zones[self.start].zone_type == "blocked":
+            raise ParseError("start_hub cannot be blocked")
+
+        if self.zones[self.end].zone_type == "blocked":
+            raise ParseError("end_hub cannot be blocked")
+
+        self._validate_path_exists()
+
+    def _validate_path_exists(self) -> None:
+        if self.start is None or self.end is None:
+            return
+
+        adjacency: dict[str, list[str]] = {}
+
+        for zone_name in self.zones:
+            adjacency[zone_name] = []
+
+        for connection in self.connections:
+            adjacency[connection.zone_a].append(connection.zone_b)
+            adjacency[connection.zone_b].append(connection.zone_a)
+
+        visited: set[str] = set()
+
+        stack: list[str] = [self.start]
+
+        while stack:
+            current_zone = stack.pop()
+
+            if current_zone == self.end:
+                return
+
+            if current_zone in visited:
+                continue
+
+            visited.add(current_zone)
+
+            for neighbor in adjacency[current_zone]:
+                if neighbor not in visited:
+                    if self.zones[neighbor].zone_type != "blocked":
+                        stack.append(neighbor)
+
+        raise ParseError("No valid path from start_hub to end_hub")

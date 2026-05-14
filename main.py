@@ -5,7 +5,6 @@ from parser import MapParser
 from errors import ParseError
 
 
-
 def main() -> int:
     if len(sys.argv) != 2:
         print("Usage: python3 main.py <map_file>")
@@ -15,7 +14,6 @@ def main() -> int:
     try:
         Map = MapParser(file_path)
         Map.parse()
-        print(Map.zones)
     except FileNotFoundError:
         print(f"Error: file not found: {file_path}")
         return 1
