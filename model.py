@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -20,9 +20,9 @@ class Connection:
 
 @dataclass
 class MapData:
-    nb_drones: int
-    start: str
-    end: str
-    zones: dict[str, Zone]
-    Conections: list[Connection]
-
+    nb_drones: int = 0
+    start: str = None
+    end: str = None
+    zones: dict[str, Zone] = field(default_factory=dict)
+    connections: list[Connection] = field(default_factory=list)
+    adjacency: dict[str, list[str]] = field(default_factory=dict)

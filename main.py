@@ -14,6 +14,8 @@ def main() -> int:
     try:
         Map = MapParser(file_path)
         Map.parse()
+        data_map = Map.data_map
+        print(data_map.adjacency)
     except FileNotFoundError:
         print(f"Error: file not found: {file_path}")
         return 1

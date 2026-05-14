@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Callable
 
 from errors import ParseError
-from model import Connection, Zone
+from model import Connection, Zone, MapData
 
 Line = tuple[str, int]
 ParserFunction = Callable[[str, str, int], None]
@@ -32,11 +32,7 @@ SUPPERTED_COLOR = {
 class MapParser:
     def __init__(self, file_path: str | Path) -> None:
         self.file_path = file_path
-        self.nb_drones: int | None = None
-        self.start: str | None = None
-        self.end: str | None = None
-        self.zones: dict[str, Zone] = {}
-        self.connections: list[Connection] = []
+        self.data_map = MapData()
         self.connection_keys: set[frozenset[str]] = set()
 
         self.funs_of_parser: dict[str, ParserFunction] = {
@@ -119,7 +115,7 @@ class MapParser:
                 f"Line {line_number}: expected 'nb_drones', got '{name}'"
             )
 
-        self.nb_drones = self._parse_positive_int(
+        self.data_map.nb_drones = self._parse_positive_int(
             value_text,
             "nb_drones",
             line_number,
@@ -140,7 +136,7 @@ class MapParser:
 
         self._validate_zone_name(zone_name, line_number)
 
-        if zone_name in self.zones:
+        if zone_name in self.data_map.zones:
             raise ParseError(
                 f"Line {line_number}: duplicate zone name '{zone_name}'"
             )
@@ -161,16 +157,16 @@ class MapParser:
         )
 
         if kind == "start_hub":
-            if self.start is not None:
+            if self.data_map.start is not None:
                 raise ParseError(f"Line {line_number}: duplicate start_hub")
-            self.start = zone_name
+            self.data_map.start = zone_name
 
         elif kind == "end_hub":
-            if self.end is not None:
+            if self.data_map.end is not None:
                 raise ParseError(f"Line {line_number}: duplicate end_hub")
-            self.end = zone_name
+            self.data_map.end = zone_name
 
-        self.zones[zone_name] = zone
+        self.data_map.zones[zone_name] = zone
 
     def _parse_connection(
         self, kind: str, body: str, line_number: int
@@ -199,12 +195,12 @@ class MapParser:
                 f"Line {line_number}: connection cannot link zone to itself"
             )
 
-        if zone_a not in self.zones:
+        if zone_a not in self.data_map.zones:
             raise ParseError(
                 f"Line {line_number}: unknown zone '{zone_a}' in connection"
             )
 
-        if zone_b not in self.zones:
+        if zone_b not in self.data_map.zones:
             raise ParseError(
                 f"Line {line_number}: unknown zone '{zone_b}' in connection"
             )
@@ -221,7 +217,7 @@ class MapParser:
         )
 
         self.connection_keys.add(connection_key)
-        self.connections.append(
+        self.data_map.connections.append(
             Connection(
                 zone_a=zone_a,
                 zone_b=zone_b,
@@ -422,44 +418,46 @@ class MapParser:
             )
 
     def _validate_final_result(self) -> None:
-        if self.nb_drones is None:
+        if self.data_map.nb_drones is None:
             raise ParseError("Missing nb_drones")
 
-        if self.start is None:
+        if self.data_map.start is None:
             raise ParseError("Missing start_hub")
 
-        if self.end is None:
+        if self.data_map.end is None:
             raise ParseError("Missing end_hub")
 
-        if self.zones[self.start].zone_type == "blocked":
+        if self.data_map.zones[self.data_map.start].zone_type == "blocked":
             raise ParseError("start_hub cannot be blocked")
 
-        if self.zones[self.end].zone_type == "blocked":
+        if self.data_map.zones[self.data_map.end].zone_type == "blocked":
             raise ParseError("end_hub cannot be blocked")
-
-        self._validate_path_exists()
-
-    def _validate_path_exists(self) -> None:
-        if self.start is None or self.end is None:
-            return
 
         adjacency: dict[str, list[str]] = {}
 
-        for zone_name in self.zones:
+        for zone_name in self.data_map.zones:
             adjacency[zone_name] = []
 
-        for connection in self.connections:
+        for connection in self.data_map.connections:
             adjacency[connection.zone_a].append(connection.zone_b)
             adjacency[connection.zone_b].append(connection.zone_a)
 
+        self.data_map.adjacency = adjacency
+
+        self._validate_path_exists(adjacency)
+
+    def _validate_path_exists(self, adjacency) -> None:
+        if self.data_map.start is None or self.data_map.end is None:
+            return
+
         visited: set[str] = set()
 
-        stack: list[str] = [self.start]
+        stack: list[str] = [self.data_map.start]
 
         while stack:
             current_zone = stack.pop()
 
-            if current_zone == self.end:
+            if current_zone == self.data_map.end:
                 return
 
             if current_zone in visited:
@@ -469,7 +467,7 @@ class MapParser:
 
             for neighbor in adjacency[current_zone]:
                 if neighbor not in visited:
-                    if self.zones[neighbor].zone_type != "blocked":
+                    if self.data_map.zones[neighbor].zone_type != "blocked":
                         stack.append(neighbor)
 
         raise ParseError("No valid path from start_hub to end_hub")
