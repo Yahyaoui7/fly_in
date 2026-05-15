@@ -234,6 +234,11 @@ class MapParser:
         try:
             x = int(x_text)
             y = int(y_text)
+            for zone in self.data_map.zones.values():
+                if (x, y) == (zone.x, zone.y):
+                    raise ParseError(
+                        f"Line {line_number}: this coordinates duplicate {(x, y)}"
+                    )
         except ValueError:
             raise ParseError(
                 f"Line {line_number}: coordinates must be integers"
