@@ -3,7 +3,7 @@ from pathlib import Path
 
 from parser import MapParser
 from errors import ParseError
-from pathfinder import dijkstra
+from pathfinder import graph_create, PathFinder
 
 
 def main() -> int:
@@ -16,8 +16,16 @@ def main() -> int:
         Map = MapParser(file_path)
         Map.parse()
         data_map = Map.data_map
-        path = dijkstra(data_map)
-        print(path)
+        graph = graph_create(data_map)
+        finder = PathFinder(graph)
+
+        paths = finder.find_multiple_paths(
+            data_map.start,
+            data_map.end,
+            count=3,
+        )
+        for path in paths:
+            print(path, end="\n\n")
     except FileNotFoundError:
         print(f"Error: file not found: {file_path}")
         return 1
