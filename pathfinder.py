@@ -96,3 +96,14 @@ def graph_create(data_map: MapData) -> dict[str, dict[str, int]]:
                 graph[name][neighbor] = 1
 
     return graph
+
+
+
+def dijkstra(start, end):
+    heap = [(0, start, [satrt])]
+
+    while heap: 
+        current_cost, node, path = heapq.heappop(heap)
+
+        for neighbor, weight in graph[node].items():
+            pass
