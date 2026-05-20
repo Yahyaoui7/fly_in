@@ -22,10 +22,8 @@ def main() -> int:
         paths = finder.find_multiple_paths(
             data_map.start,
             data_map.end,
-            count=3,
+            count=2,
         )
-        for path in paths:
-            print(path, end="\n\n")
     except FileNotFoundError:
         print(f"Error: file not found: {file_path}")
         return 1

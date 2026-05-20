@@ -1,6 +1,5 @@
-from model import MapData 
+from model import MapData
 import heapq
-
 
 Graph = dict[str, dict[str, int]]
 Edge = tuple[str, str]
@@ -35,9 +34,8 @@ class PathFinder:
             for neighbor, weight in self.graph[node].items():
                 edge = self._edge_key(node, neighbor)
 
-                extra_cost = (
-                    zone_penalty.get(neighbor, 0)
-                    + link_penalty.get(edge, 0)
+                extra_cost = zone_penalty.get(neighbor, 0) + link_penalty.get(
+                    edge, 0
                 )
 
                 new_cost = cost + weight + extra_cost
@@ -83,6 +81,17 @@ class PathFinder:
 
         return paths
 
+
+# {
+#     "start": {"A": 1, "C": 1},
+#     "A": {"start": 1, "B": 2},
+#     "B": {"A": 1, "goal": 1},
+#     "C": {"start": 1, "D": 1},
+#     "D": {"C": 1, "goal": 1},
+#     "goal": {"B": 2, "D": 1},
+# }
+
+
 def graph_create(data_map: MapData) -> dict[str, dict[str, int]]:
     graph: dict[str, dict[str, int]] = {}
 
@@ -96,6 +105,7 @@ def graph_create(data_map: MapData) -> dict[str, dict[str, int]]:
                 graph[name][neighbor] = 1
 
     return graph
+<<<<<<< HEAD
 
 
 
@@ -107,3 +117,5 @@ def dijkstra(start, end):
 
         for neighbor, weight in graph[node].items():
             pass
+=======
+>>>>>>> d4b43e9 (nathing)
