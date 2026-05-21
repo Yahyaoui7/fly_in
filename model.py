@@ -21,8 +21,8 @@ class Connection:
 @dataclass
 class MapData:
     nb_drones: int = 0
-    start: str = None
-    end: str = None
+    start: str | None = None
+    end: str | None = None
     zones: dict[str, Zone] = field(default_factory=dict)
     connections: list[Connection] = field(default_factory=list)
     adjacency: dict[str, list[str]] = field(default_factory=dict)

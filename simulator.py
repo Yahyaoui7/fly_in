@@ -1,13 +1,16 @@
 from model import Drone, MapData, Connection, Zone
-
-
+import heapq
+from collections import deque
+State = tuple[str, int]
+Score = tuple[int, int]
 class Simulator:
     def __init__(self, data_map, path):
         self.data_map: MapData = data_map
         self.drones = [Drone(i + 1, path) for i in range(data_map.nb_drones)]
         self.reservation = ReservationTable()
 
-    def can_move(self, turn, from_zone: Zone, to_zone: Zone, drone_id):
+
+    def can_move(self, turn, from_zone: Zone, to_zone: Zone) -> bool:
         capacity = None
         zones = self._edge_key(from_zone.name, to_zone.name)
         for connection in self.data_map.connections:
@@ -24,8 +27,12 @@ class Simulator:
             turn, from_zone.name, to_zone.name, capacity
         ):
             return False
+        if to_zone.zone_type == "restricted":
+            arrival_turn = turn + 2
+        else:
+            arrival_turn = turn + 1
         if not self.reservation.is_zone_available(
-            turn, to_zone, to_zone.max_drones
+            arrival_turn, to_zone.name, to_zone.max_drones
         ):
             return False
         return True
@@ -34,6 +41,123 @@ class Simulator:
         zone_one = min(zone_a, zone_b)
         zone_two = max(zone_a, zone_b)
         return zone_one, zone_two
+
+    def book_move(
+    self,
+    turn: int,
+    from_zone: Zone,
+    to_zone: Zone,
+    drone_id: int,
+) -> None:
+    pass
+
+
+    def find_path_for_drone(
+        self,
+        drone_id: int,
+        start_zone: str,
+        end_zone: str,
+        start_turn: int,
+        max_turns: int,
+    ) -> list[tuple[str, int]]:
+        start_state = (start_zone, start_turn)
+
+        queue: list[tuple[int, int, int, str]] = [
+            (0, 0, start_turn, start_zone)
+        ]
+
+        best_score: dict[State, Score] = {
+            start_state: (0, 0)
+        }
+
+        parent: dict[State, State | None] = {
+            start_state: None
+        }
+
+        while queue:
+            cost, penalty, turn, current_zone = heapq.heappop(queue)
+            current_state = (current_zone, turn)
+
+            if best_score[current_state] != (cost, penalty):
+                continue
+
+            if current_zone == end_zone:
+                return self._rebuild_path(parent, current_state)
+
+            if turn >= max_turns:
+                continue
+
+            # Option 1: wait
+            wait_turn = turn + 1
+            wait_state = (current_zone, wait_turn)
+
+            if wait_turn <= max_turns and self._can_stay(wait_turn, current_zone):
+                wait_score = (cost + 1, penalty + 1)
+
+                if self._is_better(wait_score, best_score.get(wait_state)):
+                    best_score[wait_state] = wait_score
+                    parent[wait_state] = current_state
+                    heapq.heappush(
+                        queue,
+                        (wait_score[0], wait_score[1], wait_turn, current_zone),
+                    )
+
+            # Option 2: move to neighbors
+            for neighbor in self.data_map.adjacency[current_zone]:
+                from_zone = self.data_map.zones[current_zone]
+                to_zone = self.data_map.zones[neighbor]
+
+                if not self.can_move(turn, from_zone, to_zone):
+                    continue
+
+                arrival_turn = self.get_arrival_turn(turn, to_zone)
+
+                if arrival_turn > max_turns:
+                    continue
+
+                move_cost = arrival_turn - turn
+                priority_penalty = 0 if to_zone.zone_type == "priority" else 1
+
+                next_state = (neighbor, arrival_turn)
+                next_score = (cost + move_cost, penalty + priority_penalty)
+
+                if self._is_better(next_score, best_score.get(next_state)):
+                    best_score[next_state] = next_score
+                    parent[next_state] = current_state
+                    heapq.heappush(
+                        queue,
+                        (
+                            next_score[0],
+                            next_score[1],
+                            arrival_turn,
+                            neighbor,
+                        ),
+                    )
+
+        return []
+
+    def _is_better(
+    self,
+    new_score: Score,
+    old_score: Score | None,
+) -> bool:
+        return old_score is None or new_score < old_score
+
+
+    def _rebuild_path(
+        self,
+        parent: dict[State, State | None],
+        end_state: State,
+    ) -> list[tuple[str, int]]:
+        path: list[tuple[str, int]] = []
+        current: State | None = end_state
+
+        while current is not None:
+            path.append(current)
+            current = parent[current]
+
+        path.reverse()
+        return path
 
 
 class ReservationTable:
