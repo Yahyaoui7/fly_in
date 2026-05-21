@@ -3,8 +3,7 @@ from pathlib import Path
 
 from parser import MapParser
 from errors import ParseError
-from pathfinder import graph_create, PathFinder
-
+from simulator import Simulator, ReservationTable 
 
 def main() -> int:
     if len(sys.argv) != 2:
@@ -16,9 +15,25 @@ def main() -> int:
         Map = MapParser(file_path)
         Map.parse()
         data_map = Map.data_map
-        graph = graph_create(data_map)
-        finder = PathFinder(graph)
-        print(finder.dijkstra(data_map.start, data_map.end))
+        simulator = Simulator(data_map, [])
+        path = simulator.plan_all_drones(100)  # Example max_turns value
+        lines = simulator.build_output(path)
+        for line in lines:
+            print(line)
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
     except FileNotFoundError:
         print(f"Error: file not found: {file_path}")
         return 1
