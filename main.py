@@ -18,12 +18,7 @@ def main() -> int:
         data_map = Map.data_map
         graph = graph_create(data_map)
         finder = PathFinder(graph)
-
-        paths = finder.find_multiple_paths(
-            data_map.start,
-            data_map.end,
-            count=2,
-        )
+        print(finder.dijkstra(data_map.start, data_map.end))
     except FileNotFoundError:
         print(f"Error: file not found: {file_path}")
         return 1
