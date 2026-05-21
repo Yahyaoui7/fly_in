@@ -1,56 +1,104 @@
-from model import Drone, MapData, Connection, Zone
+from model import Drone, MapData, Zone
 import heapq
-from collections import deque
+
 State = tuple[str, int]
 Score = tuple[int, int]
+
+
 class Simulator:
-    def __init__(self, data_map, path):
+    def __init__(self, data_map: MapData, path: list[str]) -> None:
         self.data_map: MapData = data_map
         self.drones = [Drone(i + 1, path) for i in range(data_map.nb_drones)]
         self.reservation = ReservationTable()
 
-
-    def can_move(self, turn, from_zone: Zone, to_zone: Zone) -> bool:
-        capacity = None
-        zones = self._edge_key(from_zone.name, to_zone.name)
-        for connection in self.data_map.connections:
-            key = self._edge_key(connection.zone_a, connection.zone_b)
-            if key == zones:
-                capacity = connection.max_link_capacity
+    def can_move(
+        self,
+        turn: int,
+        from_zone: Zone,
+        to_zone: Zone,
+    ) -> bool:
+        capacity = self._get_edge_capacity(from_zone.name, to_zone.name)
 
         if capacity is None:
             return False
 
         if to_zone.zone_type == "blocked":
             return False
-        if not self.reservation.is_edge_available(
-            turn, from_zone.name, to_zone.name, capacity
-        ):
-            return False
-        if to_zone.zone_type == "restricted":
-            arrival_turn = turn + 2
-        else:
-            arrival_turn = turn + 1
-        if not self.reservation.is_zone_available(
-            arrival_turn, to_zone.name, to_zone.max_drones
-        ):
-            return False
-        return True
 
-    def _edge_key(self, zone_a, zone_b):
-        zone_one = min(zone_a, zone_b)
-        zone_two = max(zone_a, zone_b)
-        return zone_one, zone_two
+        arrival_turn = self.get_arrival_turn(turn, to_zone)
+
+        for edge_turn in range(turn, arrival_turn):
+            if not self.reservation.is_edge_available(
+                edge_turn,
+                from_zone.name,
+                to_zone.name,
+                capacity,
+            ):
+                return False
+
+        if to_zone.name == self.data_map.end:
+            return True
+
+        return self.reservation.is_zone_available(
+            arrival_turn,
+            to_zone.name,
+            to_zone.max_drones,
+        )
 
     def book_move(
-    self,
-    turn: int,
-    from_zone: Zone,
-    to_zone: Zone,
-    drone_id: int,
-) -> None:
-    pass
+        self,
+        turn: int,
+        from_zone: Zone,
+        to_zone: Zone,
+        drone_id: int,
+    ) -> None:
+        arrival_turn = self.get_arrival_turn(turn, to_zone)
 
+        for edge_turn in range(turn, arrival_turn):
+            self.reservation.book_edge(
+                edge_turn,
+                from_zone.name,
+                to_zone.name,
+                drone_id,
+            )
+
+        if to_zone.name != self.data_map.end:
+            self.reservation.book_zone(
+                arrival_turn,
+                to_zone.name,
+                drone_id,
+            )
+
+    def book_path(
+        self,
+        drone_id: int,
+        path: list[tuple[str, int]],
+    ) -> None:
+        for index in range(len(path) - 1):
+            current_zone_name, current_turn = path[index]
+            next_zone_name, next_turn = path[index + 1]
+
+            # If drone waits in same zone
+            if current_zone_name == next_zone_name:
+                if next_zone_name != self.data_map.start:
+                    if next_zone_name != self.data_map.end:
+                        self.reservation.book_zone(
+                            next_turn,
+                            next_zone_name,
+                            drone_id,
+                        )
+                continue
+
+            # If drone moves to another zone
+            from_zone = self.data_map.zones[current_zone_name]
+            to_zone = self.data_map.zones[next_zone_name]
+
+            self.book_move(
+                current_turn,
+                from_zone,
+                to_zone,
+                drone_id,
+            )
 
     def find_path_for_drone(
         self,
@@ -66,13 +114,9 @@ class Simulator:
             (0, 0, start_turn, start_zone)
         ]
 
-        best_score: dict[State, Score] = {
-            start_state: (0, 0)
-        }
+        best_score: dict[State, Score] = {start_state: (0, 0)}
 
-        parent: dict[State, State | None] = {
-            start_state: None
-        }
+        parent: dict[State, State | None] = {start_state: None}
 
         while queue:
             cost, penalty, turn, current_zone = heapq.heappop(queue)
@@ -87,11 +131,13 @@ class Simulator:
             if turn >= max_turns:
                 continue
 
-            # Option 1: wait
             wait_turn = turn + 1
             wait_state = (current_zone, wait_turn)
 
-            if wait_turn <= max_turns and self._can_stay(wait_turn, current_zone):
+            if wait_turn <= max_turns and self._can_stay(
+                wait_turn,
+                current_zone,
+            ):
                 wait_score = (cost + 1, penalty + 1)
 
                 if self._is_better(wait_score, best_score.get(wait_state)):
@@ -99,10 +145,14 @@ class Simulator:
                     parent[wait_state] = current_state
                     heapq.heappush(
                         queue,
-                        (wait_score[0], wait_score[1], wait_turn, current_zone),
+                        (
+                            wait_score[0],
+                            wait_score[1],
+                            wait_turn,
+                            current_zone,
+                        ),
                     )
 
-            # Option 2: move to neighbors
             for neighbor in self.data_map.adjacency[current_zone]:
                 from_zone = self.data_map.zones[current_zone]
                 to_zone = self.data_map.zones[neighbor]
@@ -136,13 +186,59 @@ class Simulator:
 
         return []
 
-    def _is_better(
-    self,
-    new_score: Score,
-    old_score: Score | None,
-) -> bool:
-        return old_score is None or new_score < old_score
+    def get_arrival_turn(self, turn: int, to_zone: Zone) -> int:
+        if to_zone.zone_type == "restricted":
+            return turn + 2
+        return turn + 1
 
+    def _can_stay(self, turn: int, zone_name: str) -> bool:
+        if zone_name == self.data_map.start:
+            return True
+
+        if zone_name == self.data_map.end:
+            return True
+
+        zone = self.data_map.zones[zone_name]
+
+        if zone.zone_type == "blocked":
+            return False
+
+        return self.reservation.is_zone_available(
+            turn,
+            zone.name,
+            zone.max_drones,
+        )
+
+    def _get_edge_capacity(
+        self,
+        zone_a: str,
+        zone_b: str,
+    ) -> int | None:
+        wanted_key = self._edge_key(zone_a, zone_b)
+
+        for connection in self.data_map.connections:
+            connection_key = self._edge_key(
+                connection.zone_a,
+                connection.zone_b,
+            )
+
+            if connection_key == wanted_key:
+                return connection.max_link_capacity
+
+        return None
+
+    def _edge_key(self, zone_a: str, zone_b: str) -> tuple[str, str]:
+        zone_one = min(zone_a, zone_b)
+        zone_two = max(zone_a, zone_b)
+
+        return zone_one, zone_two
+
+    def _is_better(
+        self,
+        new_score: Score,
+        old_score: Score | None,
+    ) -> bool:
+        return old_score is None or new_score < old_score
 
     def _rebuild_path(
         self,
@@ -219,4 +315,4 @@ class ReservationTable:
         zone_a = min(from_zone, to_zone)
         zone_b = max(from_zone, to_zone)
 
-        return (turn, zone_a, zone_b)
+        return turn, zone_a, zone_b
