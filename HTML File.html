@@ -262,14 +262,14 @@ D3-goal</textarea>
       const lines = text.split("\n").map(line => line.trim()).filter(line => line && !line.startsWith("#"));
 
       lines.forEach(line => {
-        if (line.startsWith("nb_drones:")) {
+        if (/^nb_drones *:/.test(line)) {
           droneCount = Number(line.split(":")[1].trim());
           return;
         }
 
-        if (line.startsWith("start_hub:") || line.startsWith("end_hub:") || line.startsWith("hub:")) {
-          const type = line.split(":")[0];
-          const clean = line.replace(/^\w+_?\w*:\s*/, "").replace(/\[.*\]/, "").trim();
+        if (/^(start_hub|end_hub|hub) *:/.test(line)) {
+          const type = line.split(":")[0].trim();
+          const clean = line.slice(line.indexOf(":") + 1).split("[")[0].trim();
           const parts = clean.split(/\s+/);
           const name = parts[0];
           const x = Number(parts[1]);
@@ -289,8 +289,8 @@ D3-goal</textarea>
           return;
         }
 
-        if (line.startsWith("connection:")) {
-          const clean = line.replace("connection:", "").replace(/\[.*\]/, "").trim();
+        if (/^connection *:/.test(line)) {
+          const clean = line.slice(line.indexOf(":") + 1).split("[")[0].trim();
           const [from, to] = clean.split("-");
           if (zones[from] && zones[to]) connections.push({ from, to, name: `${from}-${to}` });
         }
@@ -460,4 +460,3 @@ D3-goal</textarea>
   </script>
 </body>
 </html>
-
