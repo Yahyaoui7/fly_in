@@ -144,7 +144,10 @@ class Simulator:
             next_zone_name, next_turn = path[index + 1]
 
             if current_zone_name == next_zone_name:
-                if next_zone_name not in (self.data_map.start, self.data_map.end):
+                if next_zone_name not in (
+                    self.data_map.start,
+                    self.data_map.end,
+                ):
                     self.reservation.book_zone(
                         next_turn,
                         next_zone_name,
@@ -176,13 +179,9 @@ class Simulator:
             (0, 0, start_turn, start_zone)
         ]
 
-        best_score: dict[State, Score] = {
-            start_state: (0, 0)
-        }
+        best_score: dict[State, Score] = {start_state: (0, 0)}
 
-        parent: dict[State, State | None] = {
-            start_state: None
-        }
+        parent: dict[State, State | None] = {start_state: None}
 
         while queue:
             cost, penalty, turn, current_zone = heapq.heappop(queue)
@@ -256,8 +255,6 @@ class Simulator:
         self,
         max_turns: int,
     ) -> dict[int, list[tuple[str, int]]]:
-        if self.data_map.start is None or self.data_map.end is None:
-            raise ValueError("Map must have start and end zones")
 
         planned_paths: dict[int, list[tuple[str, int]]] = {}
 

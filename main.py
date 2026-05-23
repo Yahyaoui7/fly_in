@@ -3,7 +3,8 @@ from pathlib import Path
 
 from parser import MapParser
 from errors import ParseError
-from simulator import Simulator, ReservationTable 
+from simulator import Simulator
+
 
 def main() -> int:
     if len(sys.argv) != 2:
@@ -21,19 +22,6 @@ def main() -> int:
         for line in lines:
             print(line)
 
-
-
-
-
-
-
-
-
-
-
-
-
-            
     except FileNotFoundError:
         print(f"Error: file not found: {file_path}")
         return 1
