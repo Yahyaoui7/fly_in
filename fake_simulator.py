@@ -1,25 +1,3 @@
-<<<<<<< HEAD
-# ReservationTable = checks and saves reservations
-# Simulator = runs turns and moves drones
-from model import Drone, MapData
-
-
-class ReservationTable:
-    def __init__(self):
-        self.zone_bookings: dict[tuple[int, str], list[int]] = {}
-        self.edge_bookings: dict[tuple[int, str, str], list[int]] = {}
-
-
-class Simulator:
-    def __init__(self, data_map):
-        self.data_map: MapData = data_map
-        self.drones: list = [Drone(i + 1, []) for i in range(data_map.nb_drones)]
-
-    def plan_all_drones(self):
-
-        for drone in self.drones:
-            pass
-=======
 
 from model import MapData, Zone, Connection
 
@@ -190,4 +168,63 @@ class Simulator:
                             )
 
         return []
->>>>>>> c4182be (recreate fake simulator)
+
+    def plan_all_drones(self) -> dict[int, list[tuple[str, int]]]:
+        drone_paths = {}
+        for drone_id in range(1, self.data_map.nb_drones + 1):
+            path = self.find_path_for_drone(
+                drone_id,
+                self.data_map.start,
+                self.data_map.end,
+                100,  # Example max_turns value
+            )
+            if not path:
+                print(f"Warning: No path found for drone {drone_id}")
+            else:
+                self.reservation_table.reserve_path(drone_id, path)
+            drone_paths[drone_id] = path
+        return drone_paths
+    
+
+
+    # def build_output(
+    #     self,
+    #     planned_paths: dict[int, list[tuple[str, int]]],
+    # ) -> list[str]:
+    #     movements_by_turn: dict[int, list[str]] = {}
+
+    #     for drone_id, path in planned_paths.items():
+    #         for index in range(len(path) - 1):
+    #             from_zone, from_turn = path[index]
+    #             to_zone, to_turn = path[index + 1]
+
+    #             if from_zone == to_zone:
+    #                 continue
+
+    #             if to_turn == from_turn + 1:
+    #                 movements_by_turn.setdefault(to_turn, []).append(
+    #                     f"D{drone_id}-{to_zone}"
+    #                 )
+    #                 continue
+
+    #             for turn in range(from_turn + 1, to_turn):
+    #                 connection_name = f"{from_zone}-{to_zone}"
+    #                 movements_by_turn.setdefault(turn, []).append(
+    #                     f"D{drone_id}-{connection_name}"
+    #                 )
+
+    #             movements_by_turn.setdefault(to_turn, []).append(
+    #                 f"D{drone_id}-{to_zone}"
+    #             )
+
+    #     if not movements_by_turn:
+    #         return []
+
+    #     last_turn = max(movements_by_turn)
+    #     output_lines: list[str] = []
+
+    #     for turn in range(1, last_turn + 1):
+    #         moves = movements_by_turn.get(turn, [])
+    #         output_lines.append(" ".join(moves))
+
+    #     return output_lines
