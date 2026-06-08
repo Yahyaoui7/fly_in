@@ -120,32 +120,30 @@ class Simulator:
     
     def find_path_for_drone(
         self,
-        drone_id: int,
         start_zone: str,
         end_zone: str,
         max_turns: int,
     ) -> list[tuple[str, int]]:
-        queue = [(0, start_zone, [])]
-        visited = set()
+        """Find a valid path for one drone using turn-based search."""
+        queue = [(0, 0, start_zone, [])]
+        visited: set[tuple[str, int]] = set()
+
 
         while queue:
-            turn, current_zone, path = heapq.heappop(queue)
-
-            if turn > max_turns:
+            turn, priority_score, current_zone, path = heapq.heappop(queue)
+            current_state  = (current_zone, turn)
+            
+            if current_state in visited or turn > max_turns:
                 continue
+            visited.add(current_state)
 
-            if (current_zone, turn) in visited:
-                continue
-
-            visited.add((current_zone, turn))
             new_path = path + [(current_zone, turn)]
-
+            
             if current_zone == end_zone:
                 return new_path
 
             # Option 1: wait inside the current zone
             wait_turn = turn + 1
-
             if wait_turn <= max_turns:
                 if self.reservation_table.is_zone_available(
                     current_zone,
@@ -153,30 +151,40 @@ class Simulator:
                 ):
                     heapq.heappush(
                         queue,
-                        (wait_turn, current_zone, new_path),
+                        (wait_turn, priority_score,current_zone, new_path),
                     )
 
             # Option 2: move to a connected zone
             for neighbor in self.data_map.adjacency.get(current_zone, []):
-                if self.can_move(current_zone, neighbor, turn):
-                    arrival_turn = self.get_arrival_turn(turn, neighbor)
+                arrival_turn = self.get_arrival_turn(turn, neighbor)
 
-                    if arrival_turn <= max_turns:
-                            heapq.heappush(
-                                queue,
-                                (arrival_turn, neighbor, new_path),
-                            )
+                if arrival_turn > max_turns:
+                    continue
+
+                if self.can_move(current_zone, neighbor, turn):
+                    if self.data_map.zones[neighbor].zone_type == "priority":
+                        zone_priority = 0  # Prioritize paths through priority zones
+                    else:
+                        zone_priority = 1      
+                    new_priority_score = priority_score + zone_priority
+                    
+                    heapq.heappush(
+                        queue,
+                        (arrival_turn, new_priority_score, neighbor, new_path),
+                    )
 
         return []
 
     def plan_all_drones(self) -> dict[int, list[tuple[str, int]]]:
         drone_paths = {}
+        max_turns = max(100, self.data_map.nb_drones * len(self.data_map.zones) * 5) 
+        
         for drone_id in range(1, self.data_map.nb_drones + 1):
             path = self.find_path_for_drone(
                 drone_id,
                 self.data_map.start,
                 self.data_map.end,
-                100,  # Example max_turns value
+                max_turns,  # Example max_turns value
             )
             if not path:
                 print(f"Warning: No path found for drone {drone_id}")
@@ -187,44 +195,50 @@ class Simulator:
     
 
 
-    # def build_output(
-    #     self,
-    #     planned_paths: dict[int, list[tuple[str, int]]],
-    # ) -> list[str]:
-    #     movements_by_turn: dict[int, list[str]] = {}
+    def build_output(
+        self,
+        planned_paths: dict[int, list[tuple[str, int]]],
+    ) -> list[str]:
+        """Build the simulation output lines turn by turn."""
+        movements_by_turn: dict[int, list[str]] = {}
 
-    #     for drone_id, path in planned_paths.items():
-    #         for index in range(len(path) - 1):
-    #             from_zone, from_turn = path[index]
-    #             to_zone, to_turn = path[index + 1]
+        for drone_id, path in planned_paths.items():
+            for index in range(len(path) - 1):
+                from_zone, from_turn = path[index]
+                to_zone, to_turn = path[index + 1]
 
-    #             if from_zone == to_zone:
-    #                 continue
+                # If drone waits, do not print anything
+                if from_zone == to_zone:
+                    continue
 
-    #             if to_turn == from_turn + 1:
-    #                 movements_by_turn.setdefault(to_turn, []).append(
-    #                     f"D{drone_id}-{to_zone}"
-    #                 )
-    #                 continue
+                # Normal move: takes 1 turn
+                if to_turn == from_turn + 1:
+                    movements_by_turn.setdefault(to_turn, []).append(
+                        f"D{drone_id}-{to_zone}"
+                    )
+                    continue
 
-    #             for turn in range(from_turn + 1, to_turn):
-    #                 connection_name = f"{from_zone}-{to_zone}"
-    #                 movements_by_turn.setdefault(turn, []).append(
-    #                     f"D{drone_id}-{connection_name}"
-    #                 )
+                # Restricted move: drone is on connection first
+                connection_name = f"{from_zone}-{to_zone}"
 
-    #             movements_by_turn.setdefault(to_turn, []).append(
-    #                 f"D{drone_id}-{to_zone}"
-    #             )
+                for turn in range(from_turn + 1, to_turn):
+                    movements_by_turn.setdefault(turn, []).append(
+                        f"D{drone_id}-{connection_name}"
+                    )
 
-    #     if not movements_by_turn:
-    #         return []
+                # Arrival to restricted zone
+                movements_by_turn.setdefault(to_turn, []).append(
+                    f"D{drone_id}-{to_zone}"
+                )
 
-    #     last_turn = max(movements_by_turn)
-    #     output_lines: list[str] = []
+        if not movements_by_turn:
+            return []
 
-    #     for turn in range(1, last_turn + 1):
-    #         moves = movements_by_turn.get(turn, [])
-    #         output_lines.append(" ".join(moves))
+        last_turn = max(movements_by_turn)
+        output_lines: list[str] = []
 
-    #     return output_lines
+        for turn in range(1, last_turn + 1):
+            moves = movements_by_turn.get(turn, [])
+            output_lines.append(" ".join(moves))
+
+        return output_lines
