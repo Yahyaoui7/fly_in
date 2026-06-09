@@ -3,7 +3,8 @@ from pathlib import Path
 
 from parser import MapParser
 from errors import ParseError
-from simulator import Simulator
+from fake_simulator import Simulator
+from fake_simulator import ReservationTable
 
 
 def main() -> int:
@@ -16,8 +17,9 @@ def main() -> int:
         Map = MapParser(file_path)
         Map.parse()
         data_map = Map.data_map
-        simulator = Simulator(data_map, [])
-        path = simulator.plan_all_drones(100)  # Example max_turns value
+        simulator = Simulator(data_map, ReservationTable(data_map))
+        path = simulator.plan_all_drones()
+
         lines = simulator.build_output(path)
         for line in lines:
             print(line)
