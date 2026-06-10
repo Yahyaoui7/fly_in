@@ -3,49 +3,61 @@ from model import MapData
 
 
 class Visualization:
+    WIDTH = 1400
+    HEIGHT = 800
+    SCALE = 100
+    camera_scalar = 1
+
     def __init__(self, data_map: MapData) -> None:
         self.data_map = data_map
-        self.padding = 80
-        self.scale = 1.0
-        self.min_x = 0
-        self.max_y = 0
-        self.offset_x = 0
-        self.offset_y = 0
+        pygame.init()
+        self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+        self.clock = pygame.time.Clock()
+        self.camera_x = -5
+        self.camera_y = 0
 
-    def prepare_layout(self, width: int, height: int) -> None:
-        xs = [zone.x for zone in self.data_map.zones.values()]
-        ys = [zone.y for zone in self.data_map.zones.values()]
+    def handle_even(self) -> None:
+        """Processes user input events."""
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_DOWN:
+                    self.camera_y -= self.camera_scalar
+                if event.key == pygame.K_UP:
+                    self.camera_y += self.camera_scalar
+                if event.key == pygame.K_LEFT:
+                    self.camera_x += self.camera_scalar
+                if event.key == pygame.K_RIGHT:
+                    self.camera_x -= self.camera_scalar
+                if event.key == pygame.K_SPACE:
+                    self.turn()  # this is about move drone in one turn
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
 
-        min_x = min(xs)
-        max_x = max(xs)
-        min_y = min(ys)
-        max_y = max(ys)
+    def display(self):
 
-        map_width = max(max_x - min_x, 1)
-        map_height = max(max_y - min_y, 1)
+        running = True
 
-        available_width = width - self.padding * 2
-        available_height = height - self.padding * 2
+        while running:
+            self.handle_even()
+            self.screen.fill((20, 20, 25))
 
-        scale_x = available_width / map_width
-        scale_y = available_height / map_height
+            mouse_pos = pygame.mouse.get_pos()
 
-        self.scale = min(scale_x, scale_y, 70)
+            self.display_connection(self.screen)
+            self.display_zones(self.screen, mouse_pos)
 
-        self.min_x = min_x
-        self.max_y = max_y
+            pygame.display.flip()
+            self.clock.tick(60)
 
-        drawn_width = map_width * self.scale
-        drawn_height = map_height * self.scale
-
-        self.offset_x = self.padding + (available_width - drawn_width) / 2
-        self.offset_y = self.padding + (available_height - drawn_height) / 2
+        pygame.quit()
 
     def world_to_screen(self, x: int, y: int) -> tuple[int, int]:
-        screen_x = self.offset_x + (x - self.min_x) * self.scale
-        screen_y = self.offset_y + (self.max_y - y) * self.scale
-
-        return int(screen_x), int(screen_y)
+        return (
+            self.WIDTH // 2 + (x * self.SCALE) + (self.camera_x * self.SCALE),
+            self.HEIGHT // 2 + (y * self.SCALE) + (self.camera_y * self.SCALE),
+        )
 
     def display_connection(self, screen):
         for connection in self.data_map.connections:
@@ -58,12 +70,11 @@ class Visualization:
             end = self.world_to_screen(zone_b.x, zone_b.y)
             pygame.draw.line(
                 screen,
-                (255, 25, 126),
+                (120, 120, 120),
                 start,
                 end,
-                4,
+                2,
             )
-
 
     def display_zones(
         self,
@@ -75,9 +86,10 @@ class Visualization:
 
         for zone in self.data_map.zones.values():
             position = self.world_to_screen(zone.x, zone.y)
+            color = self.get_zone_color(zone.color)
 
-            pygame.draw.circle(screen, (120, 120, 120), position, 10)
-            pygame.draw.circle(screen, (230, 230, 230), position, 10, 1)
+            pygame.draw.circle(screen, color, position, 10)
+            pygame.draw.circle(screen, color, position, 10, 1)
 
             if zone.name == hovered_zone:
                 text = font.render(zone.name, True, (255, 255, 255))
@@ -86,6 +98,13 @@ class Visualization:
                     position[1] - 30,
                 )
                 screen.blit(text, text_pos)
+
+    def get_zone_color(self, color):
+        if color == "none":
+            color = "gray"
+        if color == "rainbow":
+            color = "magenta"
+        return color
 
     def get_hovered_zone(
         self,
@@ -101,33 +120,3 @@ class Visualization:
                 return zone.name
 
         return None
-
-    def display(self):
-        pygame.init()
-        width = 1400
-        height = 800
-
-        screen = pygame.display.set_mode((width, height))
-        self.prepare_layout(width, height)
-
-        pygame.display.set_caption("fly_in visualizer")
-
-        clock = pygame.time.Clock()
-        running = True
-
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-
-            screen.fill((20, 20, 25))
-
-            mouse_pos = pygame.mouse.get_pos()
-
-            self.display_connection(screen)
-            self.display_zones(screen, mouse_pos)
-
-            pygame.display.flip()
-            clock.tick(60)
-
-        pygame.quit()
