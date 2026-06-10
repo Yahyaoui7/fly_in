@@ -5,7 +5,7 @@ from parser import MapParser
 from errors import ParseError
 from fake_simulator import Simulator
 from fake_simulator import ReservationTable
-
+from visualiser import Visualization
 
 def main() -> int:
     if len(sys.argv) != 2:
@@ -23,7 +23,8 @@ def main() -> int:
         lines = simulator.build_output(path)
         for line in lines:
             print(line)
-
+        va = Visualization(data_map)
+        va.display()
     except FileNotFoundError:
         print(f"Error: file not found: {file_path}")
         return 1
