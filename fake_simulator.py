@@ -82,7 +82,7 @@ class ReservationTable:
 class Simulator:
     def __init__(
         self, data_map: MapData, reservation_table: ReservationTable
-    ) ->None:
+    ) -> None:
 
         self.data_map = data_map
         self.reservation_table = reservation_table
@@ -185,8 +185,11 @@ class Simulator:
             )
             if not path:
                 print(f"Warning: No path found for drone {drone_id}")
-            else:
-                self.reservation_table.reserve_path(drone_id, path)
+                drone_paths[drone_id] = []
+                continue
+
+            self.reservation_table.reserve_path(drone_id, path)
+            self.data_map.drones[drone_id].path = path
             drone_paths[drone_id] = path
         return drone_paths
 

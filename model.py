@@ -18,16 +18,6 @@ class Connection:
     max_link_capacity: int = 1
 
 
-@dataclass
-class MapData:
-    nb_drones: int = 0
-    start: str | None = None
-    end: str | None = None
-    zones: dict[str, Zone] = field(default_factory=dict)
-    connections: list[Connection] = field(default_factory=list)
-    adjacency: dict[str, list[str]] = field(default_factory=dict)
-
-
 class Drone:
     def __init__(self, drone_id: int, path: list[str]):
         self.id = drone_id
@@ -45,3 +35,14 @@ class Drone:
             return self.path[self.position_index + 1]
         else:
             return None
+
+
+@dataclass
+class MapData:
+    nb_drones: int = 0
+    drones: dict[int, Drone] = field(default_factory=dict)
+    start: str | None = None
+    end: str | None = None
+    zones: dict[str, Zone] = field(default_factory=dict)
+    connections: list[Connection] = field(default_factory=list)
+    adjacency: dict[str, list[str]] = field(default_factory=dict)

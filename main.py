@@ -7,6 +7,7 @@ from fake_simulator import Simulator
 from fake_simulator import ReservationTable
 from visualiser import Visualization
 
+
 def main() -> int:
     if len(sys.argv) != 2:
         print("Usage: python3 main.py <map_file>")
@@ -20,9 +21,9 @@ def main() -> int:
         simulator = Simulator(data_map, ReservationTable(data_map))
         path = simulator.plan_all_drones()
 
-        lines = simulator.build_output(path)
-        for line in lines:
-            print(line)
+        # lines = simulator.build_output(path)
+        # for line in lines:
+        #     print(line)
         va = Visualization(data_map)
         va.display()
     except FileNotFoundError:

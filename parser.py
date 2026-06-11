@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Callable
 
 from errors import ParseError
-from model import Connection, Zone, MapData
+from model import Connection, Zone, MapData, Drone
 
 Line = tuple[str, int]
 ParserFunction = Callable[[str, str, int], None]
@@ -97,7 +97,7 @@ class MapParser:
                 )
 
             parser_function(kind, body, line_number)
-
+        self.add_drones_to_map()
         self._validate_final_result()
 
     def _parse_nb_drones(self, line: Line) -> None:
@@ -476,3 +476,9 @@ class MapParser:
                         stack.append(neighbor)
 
         raise ParseError("No valid path from start_hub to end_hub")
+
+    def add_drones_to_map(self) -> None:
+        self.data_map.drones = {
+            drone_id: Drone(drone_id, [])
+            for drone_id in range(1, self.data_map.nb_drones + 1)
+        }
