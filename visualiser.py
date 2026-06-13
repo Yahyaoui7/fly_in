@@ -44,11 +44,11 @@ class Visualization:
             self.handle_even()
             self.screen.fill((0, 0, 80))
 
-            mouse_pos = pygame.mouse.get_pos()
-
             self.display_connection()
-            self.display_zones(mouse_pos)
+            self.display_zones()
             self.display_drone()
+            self.print_title()
+
             pygame.display.flip()
             self.clock.tick(60)
 
@@ -73,7 +73,6 @@ class Visualization:
 
     def display_zones(
         self,
-        mouse_pos: tuple[int, int],
     ) -> None:
 
         for zone in self.data_map.zones.values():
@@ -81,20 +80,33 @@ class Visualization:
             color = self.get_zone_color(zone.color)
 
             pygame.draw.circle(self.screen, color, position, 20)
-            # pygame.draw.circle(self.screen, (255, 255, 255), position, 15, 1)
+            pygame.draw.circle(self.screen, (255, 255, 255), position, 20, 1)
             self.print_name_zone(zone.name, position)
-            # if zone.name == hovered_zone:
-            #     text = font.render(zone.name, True, (255, 255, 255))
-            #     text_pos = (
-            #         position[0] - text.get_width() // 2,
-            #         position[1] - 60,
-            #     )
-            #     self.screen.blit(text, text_pos)
+
+
+
+
+    def display_drone(self) -> None:
+        for drone_id, drone in self.data_map.drones.items():
+            position = self.get_drone_position(drone)
+
+            if position is None:
+                continue
+
+            pygame.draw.circle(self.screen, "black", position, 8)
+            pygame.draw.circle(self.screen, "white", position, 8, 1)
+            self.print_name_drone(drone_id, position)
+
 
     def print_name_zone(self, name, drone_pos):
         font = pygame.font.SysFont(None, 14)
         text = font.render(name, True, "white")
         self.screen.blit(text, (drone_pos[0] - 20, drone_pos[1] - 35))
+
+    def print_title(self):
+        font = pygame.font.SysFont(None, 25)
+        text = font.render(f"{self.current_turn}", True, "white")
+        self.screen.blit(text, (10, 10))
 
     def print_name_drone(self, name, drone_pos):
         font = pygame.font.SysFont(None, 14)
@@ -107,20 +119,6 @@ class Visualization:
             self.HEIGHT // 2 + (y * self.SCALE) + (self.camera_y * self.SCALE),
         )
 
-    def get_hovered_zone(
-        self,
-        mouse_pos: tuple[int, int],
-    ) -> str | None:
-        for zone in self.data_map.zones.values():
-            position = self.world_to_screen(zone.x, zone.y)
-
-            dx = mouse_pos[0] - position[0]
-            dy = mouse_pos[1] - position[1]
-
-            if dx * dx + dy * dy <= 20 * 20:
-                return zone.name
-
-        return None
 
     def get_zone_color(self, color):
         if color == "none":
@@ -143,17 +141,6 @@ class Visualization:
             for index, (_, path_turn) in enumerate(drone.path):
                 if path_turn <= self.current_turn:
                     drone.position_index = index
-
-    def display_drone(self) -> None:
-        for drone_id, drone in self.data_map.drones.items():
-            position = self.get_drone_position(drone)
-
-            if position is None:
-                continue
-
-            pygame.draw.circle(self.screen, "black", position, 8)
-            pygame.draw.circle(self.screen, "white", position, 8, 1)
-            self.print_name_drone(drone_id, position)
 
     def get_drone_position(self, drone) -> tuple[int, int] | None:
         current_turn = self.current_turn
