@@ -8,7 +8,7 @@ class Visualization:
     SCALE = 100
     camera_scalar = 1
 
-    def __init__(self, data_map: MapData) -> None:
+    def __init__(self, data_map: MapData, max_turn) -> None:
         self.data_map = data_map
         pygame.init()
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
@@ -16,6 +16,8 @@ class Visualization:
         self.camera_x = -5
         self.camera_y = 0
         self.running = True
+        self.current_turn = 0
+        self.max_turn = max_turn
 
     def handle_even(self) -> None:
         """Processes user input events."""
@@ -40,7 +42,7 @@ class Visualization:
 
         while self.running:
             self.handle_even()
-            self.screen.fill((20, 20, 25))
+            self.screen.fill((0, 0, 80))
 
             mouse_pos = pygame.mouse.get_pos()
 
@@ -73,34 +75,31 @@ class Visualization:
         self,
         mouse_pos: tuple[int, int],
     ) -> None:
-        font = pygame.font.SysFont("Courier New", 22)
-        hovered_zone = self.get_hovered_zone(mouse_pos)
 
         for zone in self.data_map.zones.values():
             position = self.world_to_screen(zone.x, zone.y)
             color = self.get_zone_color(zone.color)
 
-            pygame.draw.circle(self.screen, color, position, 15)
-            pygame.draw.circle(self.screen, (255, 255, 255), position, 15, 1)
+            pygame.draw.circle(self.screen, color, position, 20)
+            # pygame.draw.circle(self.screen, (255, 255, 255), position, 15, 1)
+            self.print_name_zone(zone.name, position)
+            # if zone.name == hovered_zone:
+            #     text = font.render(zone.name, True, (255, 255, 255))
+            #     text_pos = (
+            #         position[0] - text.get_width() // 2,
+            #         position[1] - 60,
+            #     )
+            #     self.screen.blit(text, text_pos)
 
-            if zone.name == hovered_zone:
-                text = font.render(zone.name, True, (255, 255, 255))
-                text_pos = (
-                    position[0] - text.get_width() // 2,
-                    position[1] - 60,
-                )
-                self.screen.blit(text, text_pos)
+    def print_name_zone(self, name, drone_pos):
+        font = pygame.font.SysFont(None, 14)
+        text = font.render(name, True, "white")
+        self.screen.blit(text, (drone_pos[0] - 20, drone_pos[1] - 35))
 
-    def display_drone(self):
-
-        for drone in self.data_map.drones.values():
-            current_zone = drone.current_zone
-            zone = self.data_map.zones[current_zone[0]]
-
-            position = self.world_to_screen(zone.x, zone.y)
-            color = "red"
-            pygame.draw.circle(self.screen, color, position, 10)
-            pygame.draw.circle(self.screen, (255, 255, 255), position, 10, 1)
+    def print_name_drone(self, name, drone_pos):
+        font = pygame.font.SysFont(None, 14)
+        text = font.render(f"D{name}", True, "white")
+        self.screen.blit(text, (drone_pos[0] - 8, drone_pos[1] - 17))
 
     def world_to_screen(self, x: int, y: int) -> tuple[int, int]:
         return (
@@ -129,3 +128,61 @@ class Visualization:
         if color == "rainbow":
             color = "magenta"
         return color
+
+    def turn(self) -> None:
+        """Move the visualization one simulation turn forward."""
+        if self.current_turn >= self.max_turn:
+            return
+
+        self.current_turn += 1
+
+        for drone in self.data_map.drones.values():
+            if not drone.path:
+                continue
+
+            for index, (_, path_turn) in enumerate(drone.path):
+                if path_turn <= self.current_turn:
+                    drone.position_index = index
+
+    def display_drone(self) -> None:
+        for drone_id, drone in self.data_map.drones.items():
+            position = self.get_drone_position(drone)
+
+            if position is None:
+                continue
+
+            pygame.draw.circle(self.screen, "black", position, 8)
+            pygame.draw.circle(self.screen, "white", position, 8, 1)
+            self.print_name_drone(drone_id, position)
+
+    def get_drone_position(self, drone) -> tuple[int, int] | None:
+        current_turn = self.current_turn
+
+        for index in range(len(drone.path) - 1):
+            from_zone_name, from_turn = drone.path[index]
+            to_zone_name, to_turn = drone.path[index + 1]
+
+            from_zone = self.data_map.zones[from_zone_name]
+            to_zone = self.data_map.zones[to_zone_name]
+
+            if current_turn == from_turn:
+                return self.world_to_screen(from_zone.x, from_zone.y)
+
+            if from_turn < current_turn < to_turn:
+                return self.get_position_betw_zones(from_zone, to_zone)
+
+            if current_turn == to_turn:
+                return self.world_to_screen(to_zone.x, to_zone.y)
+
+        return None
+
+    def wait_in_goal_zone(self, drone_id, position):
+
+        pygame.draw.circle(self.screen, "black", position, 8)
+        pygame.draw.circle(self.screen, "white", position, 8, 1)
+        self.print_name_zone(drone_id, position)
+
+    def get_position_betw_zones(self, from_zone, to_zone):
+        x = (from_zone.x + to_zone.x) / 2
+        y = (from_zone.y + to_zone.y) / 2
+        return self.world_to_screen(x, y)

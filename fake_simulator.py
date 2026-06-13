@@ -155,9 +155,8 @@ class Simulator:
 
                 if self.can_move(current_zone, neighbor, turn):
                     if self.data_map.zones[neighbor].zone_type == "priority":
-                        zone_priority = (
-                            0  # Prioritize paths through priority zones
-                        )
+                        zone_priority = 0
+
                     else:
                         zone_priority = 1
                     new_priority_score = priority_score + zone_priority

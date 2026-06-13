@@ -20,11 +20,12 @@ def main() -> int:
         data_map = Map.data_map
         simulator = Simulator(data_map, ReservationTable(data_map))
         path = simulator.plan_all_drones()
+        print(path)
 
-        # lines = simulator.build_output(path)
+        lines = simulator.build_output(path)
         # for line in lines:
         #     print(line)
-        va = Visualization(data_map)
+        va = Visualization(data_map, len(lines))
         va.display()
     except FileNotFoundError:
         print(f"Error: file not found: {file_path}")
