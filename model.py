@@ -23,18 +23,10 @@ class Drone:
         self.id = drone_id
         self.path = path
         self.position_index = 0
-        self.finished = False
 
     @property
     def current_zone(self) -> str:
         return self.path[self.position_index]
-
-    @property
-    def next_zone(self) -> str | None:
-        if len(self.path) > self.position_index + 1:
-            return self.path[self.position_index + 1]
-        else:
-            return None
 
 
 @dataclass

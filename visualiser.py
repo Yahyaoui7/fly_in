@@ -83,9 +83,6 @@ class Visualization:
             pygame.draw.circle(self.screen, (255, 255, 255), position, 20, 1)
             self.print_name_zone(zone.name, position)
 
-
-
-
     def display_drone(self) -> None:
         for drone_id, drone in self.data_map.drones.items():
             position = self.get_drone_position(drone)
@@ -97,7 +94,6 @@ class Visualization:
             pygame.draw.circle(self.screen, "white", position, 8, 1)
             self.print_name_drone(drone_id, position)
 
-
     def print_name_zone(self, name, drone_pos):
         font = pygame.font.SysFont(None, 14)
         text = font.render(name, True, "white")
@@ -105,8 +101,8 @@ class Visualization:
 
     def print_title(self):
         font = pygame.font.SysFont(None, 25)
-        text = font.render( f"Player {self.current_turn}'s Turn", True, "white")
-        posidtion  = self.world_to_screen(4, -3)
+        text = font.render(f"Player {self.current_turn}'s Turn", True, "white")
+        posidtion = self.world_to_screen(4, -3)
         self.screen.blit(text, posidtion)
 
     def print_name_drone(self, name, drone_pos):
@@ -119,7 +115,6 @@ class Visualization:
             self.WIDTH // 2 + (x * self.SCALE) + (self.camera_x * self.SCALE),
             self.HEIGHT // 2 + (y * self.SCALE) + (self.camera_y * self.SCALE),
         )
-
 
     def get_zone_color(self, color):
         if color == "none":

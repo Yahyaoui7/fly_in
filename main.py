@@ -20,7 +20,6 @@ def main() -> int:
         data_map = Map.data_map
         simulator = Simulator(data_map, ReservationTable(data_map))
         path = simulator.plan_all_drones()
-        print(path)
 
         lines = simulator.build_output(path)
         # for line in lines:
