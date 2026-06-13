@@ -105,8 +105,9 @@ class Visualization:
 
     def print_title(self):
         font = pygame.font.SysFont(None, 25)
-        text = font.render(f"{self.current_turn}", True, "white")
-        self.screen.blit(text, (10, 10))
+        text = font.render( f"Player {self.current_turn}'s Turn", True, "white")
+        posidtion  = self.world_to_screen(4, -3)
+        self.screen.blit(text, posidtion)
 
     def print_name_drone(self, name, drone_pos):
         font = pygame.font.SysFont(None, 14)
