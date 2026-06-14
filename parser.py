@@ -454,30 +454,40 @@ class MapParser:
             return
 
         visited: set[str] = set()
-
         stack: list[str] = [self.data_map.start]
-        len_zones = len(self.data_map.zones)
-        len_graph_zones = 1
+        found_end = False
+
         while stack:
             current_zone = stack.pop()
-
-            if current_zone == self.data_map.end:
-                if len_zones is not len_graph_zones:
-                    raise ParseError("this is deconected graph")
-                return
 
             if current_zone in visited:
                 continue
 
             visited.add(current_zone)
 
+            if current_zone == self.data_map.end:
+                found_end = True
+
             for neighbor in adjacency[current_zone]:
                 if neighbor not in visited:
-                    len_graph_zones += 1
                     if self.data_map.zones[neighbor].zone_type != "blocked":
                         stack.append(neighbor)
 
-        raise ParseError("No valid path from start_hub to end_hub")
+        if not found_end:
+            raise ParseError("No valid path from start_hub to end_hub")
+
+        graph_zones = {
+            zone_name for zone_name, zone in self.data_map.zones.items()
+        }
+        visited.update(
+            zone_name
+            for zone_name, zone in self.data_map.zones.items()
+            if zone.zone_type == "blocked"
+        )
+
+        if visited != graph_zones:
+            disconnected = graph_zones - visited
+            raise ParseError(f"Disconnected zones: {disconnected}")
 
     def add_drones_to_map(self) -> None:
         self.data_map.drones = {
