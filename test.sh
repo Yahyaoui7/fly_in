@@ -22,7 +22,7 @@ echo "   RUNNING ERROR MAPS (Should Fail/Error)"
 echo "========================================="
 
 if [ -d "maps/error" ]; then
-    for map in maps/error/.txt; do
+    for map in maps/error/*.txt; do
         [ -e "$map" ] || continue
         echo "[TESTING ERROR] python main.py "$map""
         python3 main.py "$map"

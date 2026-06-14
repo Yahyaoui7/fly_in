@@ -38,3 +38,5 @@ class MapData:
     zones: dict[str, Zone] = field(default_factory=dict)
     connections: list[Connection] = field(default_factory=list)
     adjacency: dict[str, list[str]] = field(default_factory=dict)
+
+

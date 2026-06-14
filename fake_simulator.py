@@ -112,10 +112,7 @@ class Simulator:
         return True
 
     def find_path_for_drone(
-        self,
-        start_zone: str,
-        end_zone: str,
-        max_turns: int,
+        self, start_zone: str, end_zone: str, max_turns: int
     ) -> list[tuple[str, int]]:
         """Find a valid path for one drone using turn-based search."""
         queue = [(0, 0, start_zone, [])]

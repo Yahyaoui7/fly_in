@@ -448,7 +448,6 @@ class MapParser:
             adjacency[connection.zone_b].append(connection.zone_a)
 
         self.data_map.adjacency = adjacency
-
         self._validate_path_exists(adjacency)
 
     def _validate_path_exists(self, adjacency) -> None:
@@ -458,11 +457,14 @@ class MapParser:
         visited: set[str] = set()
 
         stack: list[str] = [self.data_map.start]
-
+        len_zones = len(self.data_map.zones)
+        len_graph_zones = 1
         while stack:
             current_zone = stack.pop()
 
             if current_zone == self.data_map.end:
+                if len_zones is not len_graph_zones:
+                    raise ParseError("this is deconected graph")
                 return
 
             if current_zone in visited:
@@ -472,6 +474,7 @@ class MapParser:
 
             for neighbor in adjacency[current_zone]:
                 if neighbor not in visited:
+                    len_graph_zones += 1
                     if self.data_map.zones[neighbor].zone_type != "blocked":
                         stack.append(neighbor)
 
