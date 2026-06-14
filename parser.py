@@ -108,7 +108,7 @@ class MapParser:
 
         name, value_text = line_text.split(":", 1)
         name = name.strip().lower()
-        value_text = value_text.strip().lower()
+        value_text = value_text.strip()
 
         if name != "nb_drones":
             raise ParseError(
@@ -135,11 +135,6 @@ class MapParser:
         metadata_text = parts[3] if len(parts) == 4 else None
 
         self._validate_zone_name(zone_name, line_number)
-
-        if zone_name in self.data_map.zones:
-            raise ParseError(
-                f"Line {line_number}: duplicate zone name '{zone_name}'"
-            )
 
         x, y = self._parse_coordinates(x_text, y_text, line_number)
         zone_type, color, max_drones = self._parse_zone_metadata(
@@ -420,6 +415,10 @@ class MapParser:
         if " " in zone_name:
             raise ParseError(
                 f"Line {line_number}: zone name cannot contain spaces"
+            )
+        if zone_name in self.data_map.zones:
+            raise ParseError(
+                f"Line {line_number}: duplicate zone name '{zone_name}'"
             )
 
     def _validate_final_result(self) -> None:
