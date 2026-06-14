@@ -86,10 +86,22 @@ class Visualization:
         for zone in self.data_map.zones.values():
             position = self.world_to_screen(zone.x, zone.y)
             color = self.get_zone_color(zone.color)
+            redus = self.get_zone_radius(zone.max_drones)
 
-            pygame.draw.circle(self.screen, color, position, 20)
-            pygame.draw.circle(self.screen, (255, 255, 255), position, 20, 1)
+            pygame.draw.circle(self.screen, color, position, redus)
+            pygame.draw.circle(
+                self.screen, (255, 255, 255), position, redus, 1
+            )
             self.print_name_zone(zone.name, position)
+
+    def get_zone_radius(self, max_drones: int) -> int:
+        """Return zone circle size based on max drone capacity."""
+        base_radius = 20
+        radius_step = 4
+        max_radius = 60
+
+        radius = base_radius + ((max_drones - 1) * radius_step)
+        return min(radius, max_radius)
 
     def display_drone(self) -> None:
         """Draw all drones at the current turn."""
