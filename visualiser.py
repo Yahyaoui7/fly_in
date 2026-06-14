@@ -1,14 +1,20 @@
 import pygame
-from model import MapData
+from model import MapData, Zone, Drone
+
+Point = tuple[float, float]
 
 
 class Visualization:
+    """Display the map and drone movement with Pygame."""
+
     WIDTH = 1400
     HEIGHT = 800
     SCALE = 100
     camera_scalar = 1
 
-    def __init__(self, data_map: MapData, max_turn) -> None:
+    def __init__(self, data_map: MapData, max_turn: int) -> None:
+        """Initialize the visualizer."""
+
         self.data_map = data_map
         pygame.init()
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
@@ -38,7 +44,8 @@ class Visualization:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
 
-    def display(self):
+    def display(self) -> None:
+        """Run the visualizer window."""
 
         while self.running:
             self.handle_even()
@@ -54,7 +61,9 @@ class Visualization:
 
         pygame.quit()
 
-    def display_connection(self):
+    def display_connection(self) -> None:
+        """Draw all connections between zones."""
+
         for connection in self.data_map.connections:
             a = connection.zone_a
             b = connection.zone_b
@@ -71,9 +80,8 @@ class Visualization:
                 2,
             )
 
-    def display_zones(
-        self,
-    ) -> None:
+    def display_zones(self) -> None:
+        """Draw all zones on the screen."""
 
         for zone in self.data_map.zones.values():
             position = self.world_to_screen(zone.x, zone.y)
@@ -84,6 +92,8 @@ class Visualization:
             self.print_name_zone(zone.name, position)
 
     def display_drone(self) -> None:
+        """Draw all drones at the current turn."""
+
         for drone_id, drone in self.data_map.drones.items():
             position = self.get_drone_position(drone)
 
@@ -94,29 +104,39 @@ class Visualization:
             pygame.draw.circle(self.screen, "white", position, 8, 1)
             self.print_name_drone(drone_id, position)
 
-    def print_name_zone(self, name, drone_pos):
-        font = pygame.font.SysFont(None, 14)
-        text = font.render(name, True, "white")
+    def print_name_zone(self, name: str | int, drone_pos: Point) -> None:
+        """Draw a zone name near its position."""
+
+        font = pygame.font.Font(None, 14)
+        text = font.render(str(name), True, "white")
         self.screen.blit(text, (drone_pos[0] - 20, drone_pos[1] - 35))
 
-    def print_title(self):
-        font = pygame.font.SysFont(None, 25)
+    def print_title(self) -> None:
+        """Draw the current turn title."""
+
+        font = pygame.font.Font(None, 25)
         text = font.render(f"Player {self.current_turn}'s Turn", True, "white")
         posidtion = (self.WIDTH // 2, 5)
         self.screen.blit(text, posidtion)
 
-    def print_name_drone(self, name, drone_pos):
-        font = pygame.font.SysFont(None, 14)
+    def print_name_drone(self, name: int, drone_pos: Point) -> None:
+        """Draw a drone name near its position."""
+
+        font = pygame.font.Font(None, 14)
         text = font.render(f"D{name}", True, "white")
         self.screen.blit(text, (drone_pos[0] - 8, drone_pos[1] - 17))
 
-    def world_to_screen(self, x: int, y: int) -> tuple[int, int]:
+    def world_to_screen(self, x: float, y: float) -> Point:
+        """Convert map coordinates to screen coordinates."""
+
         return (
             self.WIDTH // 2 + (x * self.SCALE) + (self.camera_x * self.SCALE),
             self.HEIGHT // 2 + (y * self.SCALE) + (self.camera_y * self.SCALE),
         )
 
-    def get_zone_color(self, color):
+    def get_zone_color(self, color: str) -> str:
+        """Return a valid color for a zone."""
+
         if color == "none":
             color = "gray"
         if color == "rainbow":
@@ -125,6 +145,7 @@ class Visualization:
 
     def turn(self) -> None:
         """Move the visualization one simulation turn forward."""
+
         if self.current_turn >= self.max_turn:
             return
 
@@ -138,7 +159,9 @@ class Visualization:
                 if path_turn <= self.current_turn:
                     drone.position_index = index
 
-    def get_drone_position(self, drone) -> tuple[int, int] | None:
+    def get_drone_position(self, drone: Drone) -> Point | None:
+        """Return the drone position at the current turn."""
+
         current_turn = self.current_turn
 
         for index in range(len(drone.path) - 1):
@@ -159,13 +182,15 @@ class Visualization:
 
         return None
 
-    def wait_in_goal_zone(self, drone_id, position):
+    def wait_in_goal_zone(self, drone_id: int, position: Point) -> None:
+        """Draw a drone waiting in the goal zone."""
 
         pygame.draw.circle(self.screen, "black", position, 8)
         pygame.draw.circle(self.screen, "white", position, 8, 1)
         self.print_name_zone(drone_id, position)
 
-    def get_position_betw_zones(self, from_zone, to_zone):
+    def get_position_betw_zones(self, from_zone: Zone, to_zone: Zone) -> Point:
+        """Return the middle position between two zones."""
         x = (from_zone.x + to_zone.x) / 2
         y = (from_zone.y + to_zone.y) / 2
         return self.world_to_screen(x, y)

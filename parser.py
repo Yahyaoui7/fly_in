@@ -8,7 +8,7 @@ Line = tuple[str, int]
 ParserFunction = Callable[[str, str, int], None]
 
 VALID_ZONE_TYPES = {"normal", "blocked", "restricted", "priority"}
-SUPPERTED_COLOR = {
+SUPPORTED_COLOR = {
     "crimson",
     "violet",
     "darkred",
@@ -30,9 +30,13 @@ SUPPERTED_COLOR = {
 
 
 class MapParser:
+    """Parse a Fly-in map file and build a MapData object."""
+
     def __init__(self, file_path: str | Path) -> None:
-        self.file_path = file_path
-        self.data_map = MapData()
+        """Initialize the parser with the map file path."""
+
+        self.file_path: str | Path = file_path
+        self.data_map: MapData = MapData()
         self.connection_keys: set[frozenset[str]] = set()
 
         self.funs_of_parser: dict[str, ParserFunction] = {
@@ -43,6 +47,7 @@ class MapParser:
         }
 
     def parse(self) -> None:
+        """Read the file and parse all valid map lines."""
         with open(self.file_path, "r", encoding="utf-8") as file:
             raw_lines = file.readlines()
 
@@ -52,6 +57,7 @@ class MapParser:
         self._parser_all(valid_lines)
 
     def _add_number_of_line(self, lines: list[str]) -> list[Line]:
+        """Attach line numbers to raw file lines."""
         numbered_lines: list[Line] = []
 
         for index, line in enumerate(lines, start=1):
@@ -60,6 +66,8 @@ class MapParser:
         return numbered_lines
 
     def _remove_comments(self, lines: list[Line]) -> list[Line]:
+        """Remove comments and empty lines from parsed input."""
+
         valid_lines: list[Line] = []
 
         for line_text, line_number in lines:
@@ -71,6 +79,8 @@ class MapParser:
         return valid_lines
 
     def _parser_all(self, lines: list[Line]) -> None:
+        """Parse all cleaned lines and validate the final map."""
+
         if not lines:
             raise ParseError("File is empty or contains only comments")
 
@@ -101,6 +111,8 @@ class MapParser:
         self._validate_final_result()
 
     def _parse_nb_drones(self, line: Line) -> None:
+        """Parse the number of drones from the first line."""
+
         line_text, line_number = line
 
         if ":" not in line_text:
@@ -122,6 +134,8 @@ class MapParser:
         )
 
     def _parse_zone(self, kind: str, body: str, line_number: int) -> None:
+        """Parse a start, end, or normal zone line."""
+
         parts = body.split(maxsplit=3)
 
         if len(parts) < 3:
@@ -166,6 +180,8 @@ class MapParser:
     def _parse_connection(
         self, kind: str, body: str, line_number: int
     ) -> None:
+        """Parse a bidirectional connection line."""
+
         parts = body.split(maxsplit=1)
         if not parts:
             raise ParseError(f"Line {line_number}: connection is missing data")
@@ -226,13 +242,16 @@ class MapParser:
         y_text: str,
         line_number: int,
     ) -> tuple[int, int]:
+        """Parse and validate zone coordinates."""
+
         try:
             x = int(x_text)
             y = int(y_text)
+            pos = (x, y)
             for zone in self.data_map.zones.values():
-                if (x, y) == (zone.x, zone.y):
+                if pos == (zone.x, zone.y):
                     raise ParseError(
-                        f"Line {line_number}: this coordinates duplicate {(x, y)}"
+                        f"Line {line_number}: this coordinates duplicate {pos}"
                     )
         except ValueError:
             raise ParseError(
@@ -246,6 +265,8 @@ class MapParser:
         metadata_text: str | None,
         line_number: int,
     ) -> tuple[str, str, int]:
+        """Parse optional zone metadata."""
+
         zone_type = "normal"
         color = "none"
         max_drones = 1
@@ -301,7 +322,7 @@ class MapParser:
                     raise ParseError(
                         f"Line {line_number}: color cannot be empty"
                     )
-                elif value.lower() not in SUPPERTED_COLOR:
+                elif value.lower() not in SUPPORTED_COLOR:
                     raise ParseError(
                         f"Line: {line_number}: this not valid color !"
                     )
@@ -326,6 +347,8 @@ class MapParser:
         metadata_text: str | None,
         line_number: int,
     ) -> int:
+        """Parse optional connection metadata."""
+
         max_link_capacity = 1
 
         if metadata_text is None:
@@ -339,9 +362,8 @@ class MapParser:
         if not metadata_text.startswith("[") or not metadata_text.endswith(
             "]"
         ):
-            raise ParseError(
-                f"Line {line_number}: connection metadata must be inside '[' and ']'"
-            )
+
+            raise ParseError(f"Line {line_number}: metadata must use [ ]")
 
         if metadata_text.count("[") != 1 or metadata_text.count("]") != 1:
             raise ParseError(
@@ -357,23 +379,17 @@ class MapParser:
 
         for item in metadata_content.split():
             if item.count("=") != 1:
-                raise ParseError(
-                    f"Line {line_number}: connection metadata item must be key=value"
-                )
+                raise ParseError(f"Line {line_number}: expected key=value")
 
             key, value = item.split("=", 1)
 
             if key in seen_keys:
-                raise ParseError(
-                    f"Line {line_number}: duplicate connection metadata key '{key}'"
-                )
+                raise ParseError(f"Line {line_number}: duplicate key '{key}'")
 
             seen_keys.add(key)
 
             if key != "max_link_capacity":
-                raise ParseError(
-                    f"Line {line_number}: invalid connection metadata key '{key}'"
-                )
+                raise ParseError(f"Line {line_number}: invalid key '{key}'")
 
             max_link_capacity = self._parse_positive_int(
                 value,
@@ -389,6 +405,8 @@ class MapParser:
         field_name: str,
         line_number: int,
     ) -> int:
+        """Parse a positive integer field."""
+
         try:
             value = int(value_text)
         except ValueError:
@@ -404,6 +422,7 @@ class MapParser:
         return value
 
     def _validate_zone_name(self, zone_name: str, line_number: int) -> None:
+        """Validate a zone name."""
         if not zone_name:
             raise ParseError(f"Line {line_number}: zone name cannot be empty")
 
@@ -422,6 +441,8 @@ class MapParser:
             )
 
     def _validate_final_result(self) -> None:
+        """Validate the parsed map after all lines are processed."""
+
         if self.data_map.nb_drones is None:
             raise ParseError("Missing nb_drones")
 
@@ -449,7 +470,9 @@ class MapParser:
         self.data_map.adjacency = adjacency
         self._validate_path_exists(adjacency)
 
-    def _validate_path_exists(self, adjacency) -> None:
+    def _validate_path_exists(self, adjacency: dict[str, list[str]]) -> None:
+        """Validate that the graph is connected and has a path to the end."""
+
         if self.data_map.start is None or self.data_map.end is None:
             return
 

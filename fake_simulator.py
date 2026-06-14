@@ -1,11 +1,17 @@
 from model import MapData
-
 import heapq
+
+PathStep = tuple[str, int]
+DronePath = list[PathStep]
+QueueItem = tuple[int, int, str, DronePath]
 
 
 class ReservationTable:
+    """Store zone and edge reservations for each turn."""
 
     def __init__(self, data_map: MapData) -> None:
+        """Initialize the reservation table."""
+
         self.data_map: MapData = data_map
         self.zone_reservations: dict[int, dict[str, list[int]]] = {}
         self.edge_reservations: dict[int, dict[tuple[str, str], list[int]]] = (
@@ -17,9 +23,14 @@ class ReservationTable:
         }
 
     def _edge_key(self, from_zone: str, to_zone: str) -> tuple[str, str]:
-        return tuple(sorted((from_zone, to_zone)))
+        """Return a sorted key for an undirected edge."""
+
+        zone_a, zone_b = sorted((from_zone, to_zone))
+        return zone_a, zone_b
 
     def is_zone_available(self, zone: str, turn: int) -> bool:
+        """Return True if the zone has free capacity at this turn."""
+
         if zone == self.data_map.end or zone == self.data_map.start:
             return True  # Start and end zones have unlimited capacity
         capacity = self.data_map.zones[zone].max_drones
@@ -29,6 +40,8 @@ class ReservationTable:
     def is_edge_available(
         self, from_zone: str, to_zone: str, turn: int
     ) -> bool:
+        """Return True if the edge has free capacity at this turn."""
+
         edge_key = self._edge_key(from_zone, to_zone)
         capacity = self.edge_capacities.get(edge_key, None)
         if capacity is None:
@@ -39,6 +52,8 @@ class ReservationTable:
         return len(reserved_drones) < capacity
 
     def reserve_zone(self, zone: str, turn: int, drone_id: int) -> None:
+        """Reserve a zone for a drone at one turn."""
+
         if turn not in self.zone_reservations:
             self.zone_reservations[turn] = {}
         if zone not in self.zone_reservations[turn]:
@@ -48,6 +63,8 @@ class ReservationTable:
     def reserve_edge(
         self, from_zone: str, to_zone: str, turn: int, drone_id: int
     ) -> None:
+        """Reserve an edge for a drone at one turn."""
+
         edge_key = self._edge_key(from_zone, to_zone)
         if turn not in self.edge_reservations:
             self.edge_reservations[turn] = {}
@@ -55,7 +72,9 @@ class ReservationTable:
             self.edge_reservations[turn][edge_key] = []
         self.edge_reservations[turn][edge_key].append(drone_id)
 
-    def reserve_path(self, drone_id: int, path: list[tuple[str, int]]) -> None:
+    def reserve_path(self, drone_id: int, path: DronePath) -> None:
+        """Reserve all zones and edges used by one drone path."""
+
         if not path:
             return
 
@@ -80,14 +99,19 @@ class ReservationTable:
 
 
 class Simulator:
+    """Plan drone paths and build the simulation output."""
+
     def __init__(
         self, data_map: MapData, reservation_table: ReservationTable
     ) -> None:
+        """Initialize the simulator."""
 
         self.data_map = data_map
         self.reservation_table = reservation_table
 
     def get_arrival_turn(self, turn: int, to_zone: str) -> int:
+        """Return the turn when a drone arrives at the next zone."""
+
         if self.data_map.zones[to_zone].zone_type == "restricted":
             return (
                 turn + 2
@@ -96,6 +120,8 @@ class Simulator:
             return turn + 1  # Normal zones take 1 turn to pass through
 
     def can_move(self, from_zone: str, to_zone: str, turn: int) -> bool:
+        """Return True if a drone can move between two zones."""
+
         if self.data_map.zones[to_zone].zone_type == "blocked":
             return False
         arrive_turn = self.get_arrival_turn(turn, to_zone)
@@ -113,9 +139,10 @@ class Simulator:
 
     def find_path_for_drone(
         self, start_zone: str, end_zone: str, max_turns: int
-    ) -> list[tuple[str, int]]:
+    ) -> DronePath:
         """Find a valid path for one drone using turn-based search."""
-        queue = [(0, 0, start_zone, [])]
+
+        queue: list[QueueItem] = [(0, 0, start_zone, [])]
         visited: set[tuple[str, int]] = set()
 
         while queue:
@@ -165,7 +192,9 @@ class Simulator:
 
         return []
 
-    def plan_all_drones(self) -> dict[int, list[tuple[str, int]]]:
+    def plan_all_drones(self) -> dict[int, DronePath]:
+        """Plan paths for all drones."""
+
         drone_paths: dict[int, list[tuple[str, int]]] = {}
         max_turns = max(
             100, self.data_map.nb_drones * len(self.data_map.zones) * 5
@@ -191,8 +220,9 @@ class Simulator:
 
     def build_output(
         self,
-        planned_paths: dict[int, list[tuple[str, int]]],
+        planned_paths: dict[int, DronePath],
     ) -> list[str]:
+        """Build the required output lines for each turn."""
 
         movements_by_turn: dict[int, list[str]] = {}
         for drone_id, path in planned_paths.items():

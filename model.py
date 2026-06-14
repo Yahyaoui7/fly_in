@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Zone:
+    """Store information about one zone in the map."""
     name: str
     x: int
     y: int
@@ -13,24 +14,27 @@ class Zone:
 
 @dataclass
 class Connection:
+    """Store a connection between two zones."""
+
     zone_a: str
     zone_b: str
     max_link_capacity: int = 1
 
 
 class Drone:
-    def __init__(self, drone_id: int, path: list[str]):
+    """Store drone state and planned path."""
+
+    def __init__(self, drone_id: int, path: list[tuple[str, int]]) -> None:
         self.id = drone_id
         self.path = path
         self.position_index = 0
-
-    @property
-    def current_zone(self) -> str:
-        return self.path[self.position_index]
+        self.finished = False
 
 
 @dataclass
 class MapData:
+    """Store all parsed map data used by the simulator."""
+
     nb_drones: int = 0
     drones: dict[int, Drone] = field(default_factory=dict)
     start: str | None = None
