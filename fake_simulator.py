@@ -3,7 +3,7 @@ import heapq
 
 PathStep = tuple[str, int]
 DronePath = list[PathStep]
-QueueItem = tuple[int, int, str, DronePath]
+QueueItem = tuple[int, int, int, str, DronePath]
 
 
 class ReservationTable:
@@ -142,11 +142,13 @@ class Simulator:
     ) -> DronePath:
         """Find a valid path for one drone using turn-based search."""
 
-        queue: list[QueueItem] = [(0, 0, start_zone, [])]
+        queue: list[QueueItem] = [(0, 0, 0, start_zone, [])]
         visited: set[tuple[str, int]] = set()
 
         while queue:
-            turn, priority_score, current_zone, path = heapq.heappop(queue)
+            turn, _action_score, priority_score, current_zone, path = (
+                heapq.heappop(queue)
+            )
             current_state = (current_zone, turn)
 
             if current_state in visited or turn > max_turns:
@@ -165,9 +167,10 @@ class Simulator:
                     current_zone,
                     wait_turn,
                 ):
+
                     heapq.heappush(
                         queue,
-                        (wait_turn, priority_score, current_zone, new_path),
+                        (wait_turn, 1, priority_score, current_zone, new_path),
                     )
 
             # Option 2: move to a connected zone
@@ -187,7 +190,13 @@ class Simulator:
 
                     heapq.heappush(
                         queue,
-                        (arrival_turn, new_priority_score, neighbor, new_path),
+                        (
+                            arrival_turn,
+                            0,
+                            new_priority_score,
+                            neighbor,
+                            new_path,
+                        ),
                     )
 
         return []
