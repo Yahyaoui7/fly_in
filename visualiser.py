@@ -194,13 +194,6 @@ class Visualization:
 
         return None
 
-    def wait_in_goal_zone(self, drone_id: int, position: Point) -> None:
-        """Draw a drone waiting in the goal zone."""
-
-        pygame.draw.circle(self.screen, "black", position, 8)
-        pygame.draw.circle(self.screen, "white", position, 8, 1)
-        self.print_name_zone(drone_id, position)
-
     def get_position_betw_zones(self, from_zone: Zone, to_zone: Zone) -> Point:
         """Return the middle position between two zones."""
         x = (from_zone.x + to_zone.x) / 2

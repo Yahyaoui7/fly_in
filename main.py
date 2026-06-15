@@ -22,8 +22,8 @@ def main() -> int:
         path = simulator.plan_all_drones()
 
         lines = simulator.build_output(path)
-        # for line in lines:
-        #     print(line)
+        for line in lines:
+            print(line)
         va = Visualization(data_map, len(lines))
         va.display()
     except FileNotFoundError:

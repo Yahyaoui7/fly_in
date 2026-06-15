@@ -200,12 +200,10 @@ class Simulator:
     def plan_all_drones(self) -> dict[int, DronePath]:
         """Plan paths for all drones."""
 
-        drone_paths: dict[int, list[tuple[str, int]]] = {}
+        drone_paths: dict[int, DronePath] = {}
         max_turns = max(
             100, self.data_map.nb_drones * len(self.data_map.zones) * 5
         )
-        if self.data_map.start is None or self.data_map.end is None:
-            raise ValueError("Start or end zone is missing")
 
         for drone_id in range(1, self.data_map.nb_drones + 1):
             path = self.find_path_for_drone(
