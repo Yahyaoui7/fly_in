@@ -204,6 +204,8 @@ class Simulator:
         max_turns = max(
             100, self.data_map.nb_drones * len(self.data_map.zones) * 5
         )
+        if self.data_map.start is None or self.data_map.end is None:
+            raise ValueError("Start or end zone is missing")
 
         for drone_id in range(1, self.data_map.nb_drones + 1):
             path = self.find_path_for_drone(
