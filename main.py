@@ -20,7 +20,6 @@ def main() -> int:
         data_map = Map.data_map
         simulator = Simulator(data_map, ReservationTable(data_map))
         path = simulator.plan_all_drones()
-
         lines = simulator.build_output(path)
         for line in lines:
             print(line)
@@ -38,6 +37,10 @@ def main() -> int:
     except ParseError as e:
         print(f"Error: {e}")
         return 1
+    except Exception as e:
+        print(f"Exception Error: {e}")
+    except KeyboardInterrupt:
+        print("Bye")
     return 0
 
 

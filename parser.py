@@ -152,6 +152,7 @@ class MapParser:
 
         x, y = self._parse_coordinates(x_text, y_text, line_number)
         zone_type, color, max_drones = self._parse_zone_metadata(
+            kind,
             metadata_text,
             line_number,
         )
@@ -262,6 +263,7 @@ class MapParser:
 
     def _parse_zone_metadata(
         self,
+        zone_name: str,
         metadata_text: str | None,
         line_number: int,
     ) -> tuple[str, str, int]:
@@ -329,17 +331,25 @@ class MapParser:
                 color = value
 
             elif key == "max_drones":
+
                 max_drones = self._parse_positive_int(
                     value,
                     "max_drones",
                     line_number,
                 )
+                if zone_name in ["start_hub", "end_hub"]:
+                    if max_drones < self.data_map.nb_drones:
+                        raise ParseError(
+                            f"Line {line_number}: max drone cannot "
+                            f"be less then {self.data_map.nb_drones}"
+                        )
 
             else:
                 raise ParseError(
                     f"Line {line_number}: invalid zone metadata key '{key}'"
                 )
-
+        if zone_name in ["start_hub", "end_hub"]:
+            max_drones = self.data_map.nb_drones
         return zone_type, color, max_drones
 
     def _parse_connection_metadata(
