@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by <your_login>.*
+*This project has been created as part of the 42 curriculum by nyahyaou.*
 
 # Fly-in
 
@@ -6,33 +6,34 @@
 
 Fly-in is a drone routing simulation project written in Python.
 
-The goal of this project is to move multiple drones from a start hub to an end hub in the smallest possible number of simulation turns.
+The goal of the project is to move multiple drones from a start hub to an end hub in the smallest possible number of simulation turns.
 
 The map is represented as a graph:
 
-- Zones are nodes.
-- Connections are edges.
-- Drones move from zone to zone.
-- The simulation must respect capacity, movement cost, and collision rules.
+* Zones are nodes.
+* Connections are edges.
+* Drones move from zone to zone.
+* The simulation must respect zone capacity, connection capacity, movement costs, and collision rules.
+
+The project is object-oriented, type-safe, and uses custom graph logic without graph libraries.
 
 ---
 
 ## Features
 
-- Object-oriented Python project
-- Custom map parser
-- Multi-drone simulation
-- Turn-by-turn movement system
-- Zone capacity handling
-- Connection capacity handling
-- Blocked zone avoidance
-- Restricted zone movement cost
-- Priority zone preference
-- Waiting support
-- Reservation system to prevent conflicts
-- Pathfinding using `(zone, turn)` states
-- Terminal output for drone movements
-- Optional visual representation
+* Custom map parser
+* Object-oriented design
+* Multi-drone simulation
+* Turn-by-turn movement output
+* Zone capacity handling with `max_drones`
+* Connection capacity handling with `max_link_capacity`
+* Blocked zone avoidance
+* Restricted zone movement cost
+* Priority zone preference
+* Waiting when movement is not possible
+* Reservation system to avoid conflicts
+* Pathfinding using `(zone, turn)` states
+* Optional Pygame visual representation
 
 ---
 
@@ -43,90 +44,37 @@ The map is represented as a graph:
 ├── main.py
 ├── parser.py
 ├── model.py
-├── simulator.py
-├── visualizer.py
-├── maps/
+├── fake_simulator.py
+├── visualiser.py
 ├── Makefile
+├── requirements.txt
+├── maps/
 └── README.md
 ```
 
-### File Roles
+## File Roles
 
-| File | Role |
-|---|---|
-| `main.py` | Program entry point |
-| `parser.py` | Reads and validates map files |
-| `model.py` | Contains main classes like `Zone`, `Connection`, `Drone`, and `MapData` |
-| `simulator.py` | Handles pathfinding and simulation |
-| `visualizer.py` | Shows the simulation visually or in terminal |
-| `maps/` | Contains test map files |
-| `Makefile` | Contains useful project commands |
-
----
-
-## Map Format
-
-Example map:
-
-```text
-nb_drones: 5
-
-start_hub: start 0 0 [color=green max_drones=5]
-end_hub: goal 10 10 [color=yellow]
-
-hub: A 2 0 [zone=normal max_drones=1]
-hub: B 4 0 [zone=priority max_drones=1]
-hub: C 6 0 [zone=restricted max_drones=1]
-hub: X 5 5 [zone=blocked color=gray]
-
-connection: start-A
-connection: A-B [max_link_capacity=2]
-connection: B-C
-connection: C-goal
-```
+| File            | Role                                                                     |
+| --------------- | ------------------------------------------------------------------------ |
+| `main.py`       | Program entry point                                                      |
+| `parser.py`     | Reads and validates map files                                            |
+| `model.py`      | Stores data classes such as `Zone`, `Connection`, `Drone`, and `MapData` |
+| `simulator.py`  | Handles pathfinding, reservations, and output generation                 |
+| `visualiser.py` | Displays the map and drone movement visually                             |
+| `maps/`         | Contains test map files                                                  |
+| `Makefile`      | Contains useful project commands                                         |
 
 ---
 
-## Zone Types
+## Instructions
 
-| Zone Type | Meaning | Movement Cost |
-|---|---|---|
-| `normal` | Standard zone | 1 turn |
-| `priority` | Preferred zone | 1 turn |
-| `restricted` | Dangerous/sensitive zone | 2 turns |
-| `blocked` | Cannot be entered | Not allowed |
-
----
-
-## Connection Capacity
-
-Each connection can have a maximum capacity.
-
-Example:
-
-```text
-connection: A-B [max_link_capacity=2]
-```
-
-This means only 2 drones can use the connection `A-B` during the same turn.
-
-If no capacity is given, the default is:
-
-```text
-max_link_capacity = 1
-```
-
----
-
-## How to Run
-
-Install dependencies:
+### Install dependencies
 
 ```bash
 make install
 ```
 
-Run the program:
+### Run the program
 
 ```bash
 make run MAP=maps/easy/01_linear.txt
@@ -138,13 +86,19 @@ Or run directly:
 python3 main.py maps/easy/01_linear.txt
 ```
 
-Run lint:
+### Run with visual mode
+
+```bash
+python3 main.py maps/easy/01_linear.txt --visual
+```
+
+### Run lint checks
 
 ```bash
 make lint
 ```
 
-Clean temporary files:
+### Clean temporary files
 
 ```bash
 make clean
@@ -152,247 +106,169 @@ make clean
 
 ---
 
-## Simulation Output
+## Map Format
 
-The simulation prints drone movements turn by turn.
-
-Example:
+Example input:
 
 ```text
-D1-A D2-B
-D1-B D2-goal
-D1-goal
+nb_drones: 3
+
+start_hub: start 0 0 [color=green max_drones=3]
+end_hub: goal 4 0 [color=yellow]
+
+hub: A 1 0 [zone=normal max_drones=1]
+hub: B 2 0 [zone=priority max_drones=1]
+hub: C 3 0 [zone=restricted max_drones=1]
+hub: X 2 2 [zone=blocked color=gray]
+
+connection: start-A
+connection: A-B [max_link_capacity=2]
+connection: B-C
+connection: C-goal
 ```
 
-Meaning:
+### Zone Types
+
+| Zone Type    | Meaning                     | Movement Cost |
+| ------------ | --------------------------- | ------------- |
+| `normal`     | Standard zone               | 1 turn        |
+| `priority`   | Preferred zone              | 1 turn        |
+| `restricted` | Dangerous or sensitive zone | 2 turns       |
+| `blocked`    | Cannot be entered           | Not allowed   |
+
+### Metadata
+
+Zones can have optional metadata:
 
 ```text
-Turn 1: Drone 1 moves to A, Drone 2 moves to B
-Turn 2: Drone 1 moves to B, Drone 2 reaches goal
-Turn 3: Drone 1 reaches goal
+[color=green zone=priority max_drones=2]
 ```
+
+Connections can have optional metadata:
+
+```text
+[max_link_capacity=2]
+```
+
+If no capacity is given:
+
+```text
+max_drones = 1
+max_link_capacity = 1
+```
+
+The start and end zones have unlimited capacity.
+
+---
+
+## Example Output
+
+For a valid simulation, the program prints drone movements turn by turn:
+
+```text
+D1-A D2-A
+D1-B D2-B
+D1-B-C D2-B-C
+D1-C D2-C
+D1-goal D2-goal
+D3-A
+D3-B
+D3-B-C
+D3-C
+D3-goal
+```
+
+Each line is one simulation turn.
+
+Example meaning:
+
+```text
+D1-A
+```
+
+means Drone 1 moved to zone `A`.
+
+For restricted movement, the drone may be printed on a connection:
+
+```text
+D1-B-C
+```
+
+This means Drone 1 is still travelling on the connection from `B` to `C`.
 
 Drones that do not move during a turn are not printed.
 
 ---
 
-## Big Picture
+## Algorithm Explanation
 
-The simulation works like this:
+The simulator uses a turn-based pathfinding approach.
 
-```text
-MapData
-   ↓
-Simulator
-   ↓
-Find path for each drone
-   ↓
-Check if movement is valid
-   ↓
-Reserve zones and connections
-   ↓
-Print drone movements
-```
-
-The main idea is to avoid conflicts between drones.
-
-A drone can move only if:
-
-1. The destination zone is not blocked.
-2. The connection exists.
-3. The connection has free capacity.
-4. The destination zone has free capacity at the arrival turn.
-5. The move does not pass the maximum turn limit.
-
----
-
-## Simulator
-
-The `Simulator` class controls the simulation.
-
-It stores:
-
-```python
-self.data_map
-self.drones
-self.reservation
-```
-
-Meaning:
+Instead of searching only by zone, the algorithm searches by:
 
 ```text
-data_map     = map information
-drones       = all drones
-reservation  = used zones and connections
+(zone, turn)
 ```
 
-The simulator is responsible for:
+This is important because a zone or connection may be full at one turn but free later.
 
-- Checking if a drone can move
-- Finding a path for a drone
-- Booking zones
-- Booking connections
-- Avoiding collisions
-- Managing turns
-
----
-
-## Reservation Table
-
-The `ReservationTable` remembers which zones and connections are already used.
-
-### Zone Booking
-
-```python
-zone_bookings[(turn, zone)] = [drone_ids]
-```
-
-Example:
-
-```python
-zone_bookings[(2, "A")] = [1]
-```
-
-Meaning:
+Example state:
 
 ```text
-At turn 2, Drone 1 is in zone A.
+("A", 3)
 ```
-
-### Edge Booking
-
-```python
-edge_bookings[(turn, zone_a, zone_b)] = [drone_ids]
-```
-
-Example:
-
-```python
-edge_bookings[(3, "A", "B")] = [2]
-```
-
-Meaning:
-
-```text
-At turn 3, Drone 2 is using connection A-B.
-```
-
----
-
-## Edge Normalization
-
-Connections are bidirectional.
 
 This means:
 
 ```text
-A-B
+The drone is in zone A at turn 3.
 ```
-
-is the same as:
-
-```text
-B-A
-```
-
-To avoid duplicate keys, the simulator normalizes the connection:
-
-```python
-zone_a = min(from_zone, to_zone)
-zone_b = max(from_zone, to_zone)
-```
-
-Example:
-
-```python
-_edge_key("B", "A")
-```
-
-returns:
-
-```python
-("A", "B")
-```
-
-So both directions use the same reservation key.
-
----
-
-## Pathfinding Strategy
-
-The pathfinder searches using states.
-
-A state is:
-
-```python
-(zone, turn)
-```
-
-Example:
-
-```python
-("A", 2)
-```
-
-Meaning:
-
-```text
-The drone is in zone A at turn 2.
-```
-
-This is important because a zone may be full at one turn but free later.
 
 ---
 
 ## Priority Queue
 
-The pathfinder uses a priority queue.
+The pathfinder uses a priority queue with `heapq`.
 
-Each queue item has this format:
-
-```python
-(cost, penalty, turn, zone)
-```
-
-| Value | Meaning |
-|---|---|
-| `cost` | Total movement cost |
-| `penalty` | Used to prefer priority zones |
-| `turn` | Current simulation turn |
-| `zone` | Current zone name |
-
-Example:
+A queue item has this format:
 
 ```python
-(2, 1, 2, "A")
+(turn, action_score, priority_score, current_zone, path)
 ```
 
-Meaning:
+| Value            | Meaning                              |
+| ---------------- | ------------------------------------ |
+| `turn`           | Current simulation turn              |
+| `action_score`   | Used to prefer moving before waiting |
+| `priority_score` | Used to prefer priority zones        |
+| `current_zone`   | Current zone name                    |
+| `path`           | Path already taken                   |
 
-```text
-Cost is 2
-Penalty is 1
-Current turn is 2
-Current zone is A
-```
+The queue always chooses the smallest item first.
+
+This means the algorithm prefers:
+
+1. Earlier turns
+2. Moving before waiting
+3. Priority zones before normal zones
 
 ---
 
-## Cost System
+## Movement Cost
 
-Movement cost depends on the destination zone.
+Movement cost depends on the destination zone:
 
 ```text
-normal zone     = 1 turn
-priority zone   = 1 turn
-restricted zone = 2 turns
-blocked zone    = not allowed
+normal     = 1 turn
+priority   = 1 turn
+restricted = 2 turns
+blocked    = not allowed
 ```
 
 Example:
 
 ```python
-if to_zone.zone_type == "restricted":
+if zone_type == "restricted":
     arrival_turn = turn + 2
 else:
     arrival_turn = turn + 1
@@ -400,104 +276,85 @@ else:
 
 ---
 
-## Priority Penalty
-
-Priority zones are preferred by giving them a lower penalty.
-
-```python
-priority_penalty = 0 if to_zone.zone_type == "priority" else 1
-```
-
-Example:
-
-```text
-priority zone = penalty 0
-normal zone   = penalty 1
-```
-
-So if two paths have the same cost, the path using priority zones is chosen first.
-
----
-
 ## Waiting Strategy
 
 A drone can wait in the same zone for one turn.
 
-This is useful when:
+Waiting is useful when:
 
-- The next zone is full.
-- The connection is full.
-- Moving now would cause a conflict.
-- Waiting creates a better path later.
+* The next zone is full
+* The connection is full
+* Moving now would break a capacity rule
+* Waiting gives a valid path later
+
+Waiting is treated as another possible state in the queue.
 
 Example:
 
 ```text
-Turn 1: Drone waits at A
-Turn 2: Drone moves from A to B
+("A", 2) -> ("A", 3)
 ```
 
-Waiting is treated like another possible move.
+This means the drone waits in zone `A` for one turn.
 
 ---
 
-## Movement Validation
+## Reservation System
 
-Before moving, the simulator checks the move with `can_move`.
+After a path is found for a drone, the simulator reserves the zones and connections used by that path.
 
-The method checks:
+This prevents future drones from breaking capacity rules.
 
-```text
-1. Is the destination blocked?
-2. Does the connection exist?
-3. Is the connection available?
-4. Is the destination zone available at arrival time?
-```
+### Zone reservation
 
 Example:
 
-```python
-def can_move(self, turn, from_zone, to_zone):
-    if to_zone.zone_type == "blocked":
-        return False
-
-    if not edge_is_available:
-        return False
-
-    if not zone_is_available:
-        return False
-
-    return True
+```text
+turn 2, zone A -> Drone 1
 ```
 
----
+This means Drone 1 occupies zone `A` at turn 2.
 
-## Booking a Move
+### Connection reservation
 
-After a path is found, the simulator must reserve it.
+Example:
 
-Booking means saving:
+```text
+turn 3, connection A-B -> Drone 2
+```
 
-- The zone used by the drone
-- The connection used by the drone
-- The turn when it happens
+This means Drone 2 is using connection `A-B` at turn 3.
+
+For restricted movement, the connection is reserved for multiple turns.
 
 Example path:
 
 ```python
-[("start", 0), ("A", 1), ("goal", 2)]
+[("A", 0), ("B", 2)]
 ```
 
-Bookings:
+The connection `A-B` is reserved at:
 
 ```text
-Turn 1: book connection start-A
-Turn 1: book zone A
-Turn 2: book connection A-goal
-Turn 2: book zone goal
+turn 0
+turn 1
 ```
 
-This prevents another drone from breaking capacity rules.
+The drone arrives at `B` on turn 2.
+
+---
+
+## Conflict Handling
+
+Before a drone moves, the simulator checks:
+
+1. The destination zone is not blocked.
+2. The connection exists.
+3. The connection has free capacity.
+4. The destination zone has free capacity at the arrival turn.
+5. The movement does not exceed the maximum turn limit.
+
+If any check fails, the move is not allowed.
 
 ---
 
@@ -505,39 +362,17 @@ This prevents another drone from breaking capacity rules.
 
 For each drone:
 
-```text
-1. Start from the start zone.
+1. Start at the start zone on turn 0.
 2. Add the start state to the priority queue.
-3. Take the best state from the queue.
-4. If the current zone is the end zone, rebuild the path.
-5. Try waiting.
-6. Try moving to each neighbor.
-7. Check if the move is valid.
-8. Calculate arrival turn.
-9. Calculate score.
-10. Save the best state.
-11. Continue until a path is found.
-12. Reserve the final path.
-```
-
----
-
-## Path Rebuilding
-
-The algorithm stores parents.
-
-Example:
-
-```python
-parent[("A", 1)] = ("start", 0)
-parent[("goal", 2)] = ("A", 1)
-```
-
-This allows the simulator to rebuild the final path:
-
-```python
-[("start", 0), ("A", 1), ("goal", 2)]
-```
+3. Pop the best state from the queue.
+4. If the current zone is the end zone, return the path.
+5. Try waiting in the current zone.
+6. Try moving to each connected neighbor.
+7. Check if each move is valid.
+8. Calculate the arrival turn.
+9. Add valid future states to the queue.
+10. Reserve the final path.
+11. Continue until all drones have a path.
 
 ---
 
@@ -557,13 +392,13 @@ The algorithm searches states like:
 (zone, turn)
 ```
 
-So the number of possible states is:
+So the number of possible states is approximately:
 
 ```text
 O(V * T)
 ```
 
-For each state, it checks neighbors.
+For each state, the algorithm may check connected neighbors.
 
 Approximate complexity:
 
@@ -577,38 +412,59 @@ The `log` part comes from the priority queue.
 
 ## Visual Representation
 
-The visual output helps understand the simulation.
+The project includes an optional Pygame visualizer.
 
-It can show:
+The visualizer helps the user understand the simulation by showing:
 
-- Drone positions
-- Zone colors
-- Blocked zones
-- Restricted zones
-- Priority zones
-- Current turn
-- Drone movement
-- Delivered drones
+* Zones as circles
+* Connections as lines
+* Drones as small moving circles
+* Zone colors from metadata
+* Blocked zones visually
+* Restricted and priority zones
+* Current simulation turn
+* Drone positions over time
+* Camera movement with arrow keys
+* Step-by-step simulation using the space key
 
-This helps during debugging and peer review.
+Zone size can also represent capacity:
+
+```text
+higher max_drones -> bigger zone circle
+```
+
+This makes the simulation easier to debug and easier to explain during peer review.
+
+---
+
+## Visual Controls
+
+| Key          | Action                              |
+| ------------ | ----------------------------------- |
+| `SPACE`      | Move simulation forward by one turn |
+| `Arrow keys` | Move the camera                     |
+| `ESC`        | Close the visualizer                |
 
 ---
 
 ## Error Handling
 
-The parser should detect invalid input, such as:
+The parser detects invalid input and raises clear errors.
 
-- Missing `nb_drones`
-- Invalid zone type
-- Duplicate zones
-- Duplicate connections
-- Connection to unknown zone
-- Invalid capacity
-- Missing start hub
-- Missing end hub
-- Bad metadata syntax
+Examples of handled errors:
 
-When an error happens, the program should print a clear message.
+* Missing `nb_drones`
+* Missing `start_hub`
+* Missing `end_hub`
+* Duplicate zone names
+* Duplicate connections
+* Invalid zone type
+* Invalid capacity value
+* Invalid metadata syntax
+* Connection to an unknown zone
+* Blocked start or end zone
+* No valid path from start to end
+* Disconnected usable zones
 
 ---
 
@@ -616,14 +472,14 @@ When an error happens, the program should print a clear message.
 
 The simulator improves performance by:
 
-- Using a priority queue
-- Searching with `(zone, turn)` states
-- Avoiding blocked zones early
-- Preferring priority zones
-- Checking zone capacity
-- Checking connection capacity
-- Allowing strategic waiting
-- Reserving paths to prevent future conflicts
+* Using a priority queue
+* Searching with `(zone, turn)` states
+* Avoiding blocked zones early
+* Preferring priority zones
+* Checking capacity before moving
+* Allowing strategic waiting
+* Reserving paths after they are found
+* Preventing future conflicts with the reservation table
 
 ---
 
@@ -633,13 +489,14 @@ AI was used as a learning assistant during development.
 
 It helped with:
 
-- Understanding pathfinding logic
-- Understanding reservation tables
-- Explaining edge capacity
-- Explaining zone capacity
-- Improving code structure
-- Improving README structure
-- Debugging errors
+* Understanding pathfinding logic
+* Understanding Dijkstra-style search
+* Understanding reservation tables
+* Explaining zone capacity
+* Explaining connection capacity
+* Improving README structure
+* Debugging type hint and mypy errors
+* Improving code clarity
 
 All AI-generated ideas were reviewed, tested, and adapted manually.
 
@@ -647,20 +504,15 @@ All AI-generated ideas were reviewed, tested, and adapted manually.
 
 ## Resources
 
+## Resources
+
 - Python documentation: https://docs.python.org/3/
 - heapq documentation: https://docs.python.org/3/library/heapq.html
-- collections documentation: https://docs.python.org/3/library/collections.html
+- dataclasses documentation: https://docs.python.org/3/library/dataclasses.html
 - mypy documentation: https://mypy.readthedocs.io/
 - flake8 documentation: https://flake8.pycqa.org/
-- Graph theory: https://en.wikipedia.org/wiki/Graph_theory
 - Dijkstra algorithm: https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
 
+AI was used to help understand pathfinding, reservation tables, type hints, mypy errors, and README structure.
+
 ---
-
-## Author
-
-Created by:
-
-```text
-<your_login>
-```
